@@ -1,4 +1,5 @@
 import { players as demoPlayers } from '../data/players.js'
+import { normalizePublicHttpsUrl } from '../publicUrl.js'
 
 const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim()
 const API_BASE_URL = configuredBaseUrl ? configuredBaseUrl.replace(/\/$/, '') : ''
@@ -39,6 +40,17 @@ function normalizeCause(cause) {
   }
 }
 
+function normalizeSocial(social) {
+  if (!social || typeof social !== 'object') return null
+
+  const label = typeof social.label === 'string' ? social.label.trim() : ''
+  const url = normalizePublicHttpsUrl(social.url)
+
+  if (!label || !url) return null
+
+  return { label, url }
+}
+
 export function normalizePlayer(player, locale = 'en') {
   const isFrench = locale.toLowerCase().startsWith('fr')
   const name = player.alias || player.name || player.displayName || player.firstName || (isFrench ? 'Joueur' : 'Player')
@@ -76,7 +88,7 @@ export function normalizePlayer(player, locale = 'en') {
     tags: Array.isArray(player.tags) ? player.tags : [],
     bio: player.bio || '',
     bioFr: player.bioFr || '',
-    socials: Array.isArray(player.socials) ? player.socials.filter((social) => social?.label && social?.url) : [],
+    socials: Array.isArray(player.socials) ? player.socials.map(normalizeSocial).filter(Boolean) : [],
     reviews: Array.isArray(player.reviews) ? player.reviews : [],
   }
 }
