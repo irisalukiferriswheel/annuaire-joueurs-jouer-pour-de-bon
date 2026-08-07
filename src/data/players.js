@@ -21,13 +21,26 @@ export const players = [
     reviewCount: 18,
     tags: ['Respectful', 'Fair play', 'Reliable'],
     bio: 'I like casual competition, meeting new people, and helping local environmental causes through games.',
+    bioFr: 'J’aime la compétition amicale, rencontrer de nouvelles personnes et aider des causes environnementales locales grâce aux jeux.',
     socials: [
       { label: 'Instagram', url: 'https://instagram.com/' },
       { label: 'Discord', url: 'https://discord.com/' },
     ],
     reviews: [
-      { author: 'Abidanny', rating: 5, text: 'Friendly, reliable, and a very fair player.', game: 'Basketball Knockout' },
-      { author: 'Maya', rating: 5, text: 'Great communication before the game and respectful throughout.', game: 'Chess' },
+      {
+        author: 'Abidanny',
+        rating: 5,
+        text: 'Friendly, reliable, and a very fair player.',
+        textFr: 'Amical, fiable et très respectueux de l’esprit sportif.',
+        game: 'Basketball Knockout',
+      },
+      {
+        author: 'Maya',
+        rating: 5,
+        text: 'Great communication before the game and respectful throughout.',
+        textFr: 'Excellente communication avant la partie et attitude respectueuse du début à la fin.',
+        game: 'Chess',
+      },
     ],
   },
   {
@@ -51,9 +64,16 @@ export const players = [
     reviewCount: 9,
     tags: ['Friendly', 'Reliable', 'Fair play'],
     bio: 'Mostly basketball and soccer. Happy to join friendly local games and discover new causes.',
+    bioFr: 'Surtout du basketball et du soccer. Toujours partant pour des parties locales amicales et pour découvrir de nouvelles causes.',
     socials: [{ label: 'Instagram', url: 'https://instagram.com/' }],
     reviews: [
-      { author: 'Nomis', rating: 5, text: 'Showed up on time and kept the game fun.', game: 'Basketball Knockout' },
+      {
+        author: 'Nomis',
+        rating: 5,
+        text: 'Showed up on time and kept the game fun.',
+        textFr: 'Arrivé à l’heure et a contribué à garder la partie agréable.',
+        game: 'Basketball Knockout',
+      },
     ],
   },
   {
@@ -78,9 +98,16 @@ export const players = [
     reviewCount: 26,
     tags: ['Respectful', 'Welcoming', 'Reliable'],
     bio: 'Board-game player who enjoys relaxed competition and supporting food-security projects.',
+    bioFr: 'Joueuse de jeux de société qui aime la compétition détendue et soutenir des projets de sécurité alimentaire.',
     socials: [{ label: 'Discord', url: 'https://discord.com/' }],
     reviews: [
-      { author: 'Nomis', rating: 5, text: 'Welcoming and a pleasure to play with.', game: 'Chess' },
+      {
+        author: 'Nomis',
+        rating: 5,
+        text: 'Welcoming and a pleasure to play with.',
+        textFr: 'Accueillante et très agréable comme partenaire de jeu.',
+        game: 'Chess',
+      },
     ],
   },
   {
@@ -104,6 +131,7 @@ export const players = [
     reviewCount: 7,
     tags: ['Fair play', 'Friendly'],
     bio: 'Looking for pickup soccer and quick casual games around Montréal.',
+    bioFr: 'À la recherche de parties de soccer improvisées et de jeux rapides et décontractés à Montréal.',
     socials: [{ label: 'Instagram', url: 'https://instagram.com/' }],
     reviews: [],
   },
