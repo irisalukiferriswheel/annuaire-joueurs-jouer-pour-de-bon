@@ -72,7 +72,7 @@ export function normalizePlayer(player, locale = 'en') {
     name,
     initials: player.initials || initialsFor(name),
     city: player.city || (isFrench ? 'Ville non indiquée' : 'City not listed'),
-    province: player.province || 'QC',
+    province: player.province,
     availability,
     availabilityLabel: player.availabilityLabel || (
       availability === 'now' ? 'Available now' : availability === 'week' ? 'Available this week' : 'Not currently available'
@@ -132,8 +132,9 @@ export async function loadPlayers({ locale = 'en-CA', signal } = {}) {
     // The current public API intentionally starts with a compact basic-player
     // contract, while this frontend already displays richer statistics,
     // reputation, causes, availability, and profile details. Do not turn
-    // missing fields into convincing-looking zeroes. Until every returned
-    // player satisfies the rich public contract, remain visibly in demo mode.
+    // missing fields into convincing-looking zeroes or invented geography.
+    // Until every returned player satisfies the rich public contract, remain
+    // visibly in demo mode.
     if (!hasRichDirectoryContract(rawPlayers)) {
       console.warn('Public player API is reachable but does not yet satisfy the rich directory contract.')
       return {
