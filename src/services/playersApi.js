@@ -2,7 +2,7 @@ import { players as demoPlayers } from '../data/players.js'
 
 const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim()
 const API_BASE_URL = configuredBaseUrl ? configuredBaseUrl.replace(/\/$/, '') : ''
-const NO_CAUSE_NAME = 'No cause selected yet'
+const NO_CAUSE_NAMES = new Set(['No cause selected yet', 'Aucune cause sélectionnée'])
 
 function initialsFor(name) {
   return name
@@ -40,19 +40,25 @@ function normalizeCause(cause) {
 }
 
 export function normalizePlayer(player, locale = 'en') {
-  const name = player.alias || player.name || player.displayName || player.firstName || 'Player'
+  const isFrench = locale.toLowerCase().startsWith('fr')
+  const name = player.alias || player.name || player.displayName || player.firstName || (isFrench ? 'Joueur' : 'Player')
   const games = (player.games || []).map((game) => normalizeGame(game, locale)).filter(Boolean)
   const normalizedCauses = (player.causes || []).map(normalizeCause).filter(Boolean)
   const causes = normalizedCauses.length
     ? normalizedCauses
-    : [{ name: NO_CAUSE_NAME, contributed: 0, goalReached: false, progress: 0 }]
+    : [{
+        name: isFrench ? 'Aucune cause sélectionnée' : 'No cause selected yet',
+        contributed: 0,
+        goalReached: false,
+        progress: 0,
+      }]
   const availability = ['now', 'week', 'off'].includes(player.availability) ? player.availability : 'off'
 
   return {
     id: String(player.id),
     name,
     initials: player.initials || initialsFor(name),
-    city: player.city || 'City not listed',
+    city: player.city || (isFrench ? 'Ville non indiquée' : 'City not listed'),
     province: player.province || 'QC',
     availability,
     availabilityLabel: player.availabilityLabel || (
@@ -69,6 +75,7 @@ export function normalizePlayer(player, locale = 'en') {
     reviewCount: Number(player.reviewCount ?? 0),
     tags: Array.isArray(player.tags) ? player.tags : [],
     bio: player.bio || '',
+    bioFr: player.bioFr || '',
     socials: Array.isArray(player.socials) ? player.socials.filter((social) => social?.label && social?.url) : [],
     reviews: Array.isArray(player.reviews) ? player.reviews : [],
   }
@@ -81,7 +88,7 @@ export function buildFilterOptions(players) {
     causes: [...new Set(
       players
         .flatMap((player) => (player.causes || []).map((cause) => cause.name))
-        .filter((name) => name && name !== NO_CAUSE_NAME),
+        .filter((name) => name && !NO_CAUSE_NAMES.has(name)),
     )].sort(),
   }
 }
