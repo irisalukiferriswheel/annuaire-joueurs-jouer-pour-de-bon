@@ -19,14 +19,20 @@ function updateDataSourceBanner(source, reason, language) {
   const messages = language === 'fr'
     ? {
         unavailable: 'Mode prototype — l’API publique est temporairement indisponible; des données de démonstration sont affichées.',
+        incomplete: 'Mode prototype — l’API publique répond, mais les profils ne contiennent pas encore toutes les données requises; les données de démonstration restent affichées.',
         demo: 'Mode prototype — données de démonstration, pas de vrais dossiers de joueurs.',
       }
     : {
         unavailable: 'Prototype mode — the public API is temporarily unavailable; demo data is shown.',
+        incomplete: 'Prototype mode — the public API is responding, but player profiles do not yet contain all required public fields; demo data remains visible.',
         demo: 'Prototype mode — demo data, not real player records.',
       }
 
-  banner.textContent = reason === 'api-unavailable' ? messages.unavailable : messages.demo
+  banner.textContent = reason === 'api-unavailable'
+    ? messages.unavailable
+    : reason === 'api-profile-contract-incomplete'
+      ? messages.incomplete
+      : messages.demo
   banner.hidden = false
 }
 
