@@ -3,9 +3,10 @@ import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 import { filterOptions, players } from './data/players.js'
 import { buildFilterOptions, loadPlayers } from './services/playersApi.js'
+import { getInitialLanguage, localeForLanguage } from './i18n.js'
 import './styles.css'
 
-function updateDataSourceBanner(source, reason) {
+function updateDataSourceBanner(source, reason, language) {
   const banner = document.getElementById('data-source-banner')
   if (!banner) return
 
@@ -15,14 +16,25 @@ function updateDataSourceBanner(source, reason) {
     return
   }
 
-  banner.textContent = reason === 'api-unavailable'
-    ? 'Mode prototype — l’API publique est temporairement indisponible; des données de démonstration sont affichées. / Prototype mode — public API unavailable; demo data is shown.'
-    : 'Mode prototype — données de démonstration, pas de vrais dossiers de joueurs. / Prototype mode — demo data, not real player records.'
+  const messages = language === 'fr'
+    ? {
+        unavailable: 'Mode prototype — l’API publique est temporairement indisponible; des données de démonstration sont affichées.',
+        demo: 'Mode prototype — données de démonstration, pas de vrais dossiers de joueurs.',
+      }
+    : {
+        unavailable: 'Prototype mode — the public API is temporarily unavailable; demo data is shown.',
+        demo: 'Prototype mode — demo data, not real player records.',
+      }
+
+  banner.textContent = reason === 'api-unavailable' ? messages.unavailable : messages.demo
   banner.hidden = false
 }
 
 async function bootstrap() {
-  const result = await loadPlayers({ locale: navigator.language || 'en-CA' })
+  const language = getInitialLanguage()
+  document.documentElement.lang = language
+
+  const result = await loadPlayers({ locale: localeForLanguage(language) })
 
   if (result.players !== players) {
     players.splice(0, players.length, ...result.players)
@@ -31,24 +43,28 @@ async function bootstrap() {
   Object.assign(filterOptions, buildFilterOptions(players))
   window.__JPDB_DATA_SOURCE__ = result.source
   window.__JPDB_DATA_REASON__ = result.reason
-  updateDataSourceBanner(result.source, result.reason)
+  window.__JPDB_LANGUAGE__ = language
+  updateDataSourceBanner(result.source, result.reason, language)
 
   createRoot(document.getElementById('root')).render(
     <React.StrictMode>
-      <App />
+      <App language={language} />
     </React.StrictMode>,
   )
 }
 
 bootstrap().catch((error) => {
   console.error('Player directory bootstrap failed:', error)
+  const language = getInitialLanguage()
+  document.documentElement.lang = language
   window.__JPDB_DATA_SOURCE__ = 'demo'
   window.__JPDB_DATA_REASON__ = 'bootstrap-error'
-  updateDataSourceBanner('demo', 'bootstrap-error')
+  window.__JPDB_LANGUAGE__ = language
+  updateDataSourceBanner('demo', 'bootstrap-error', language)
 
   createRoot(document.getElementById('root')).render(
     <React.StrictMode>
-      <App />
+      <App language={language} />
     </React.StrictMode>,
   )
 })

@@ -8,6 +8,24 @@ https://irisalukiferriswheel.github.io/annuaire-joueurs-jouer-pour-de-bon/
 
 The GitHub Pages application intentionally has no site header or footer. Wix should provide the surrounding site navigation and footer so the embedded directory reads as part of the main Jouer pour de bon site.
 
+## Language
+
+The directory supports French and English. It remembers the visitor's selected language and also accepts an explicit `lang` query parameter.
+
+For a French-first Wix page, embed:
+
+```text
+https://irisalukiferriswheel.github.io/annuaire-joueurs-jouer-pour-de-bon/?lang=fr
+```
+
+For an English-first Wix page, embed:
+
+```text
+https://irisalukiferriswheel.github.io/annuaire-joueurs-jouer-pour-de-bon/?lang=en
+```
+
+Visitors can switch between FR and EN inside the directory. Changing the language reloads the module in that locale so future API-provided game names use the same language as the interface.
+
 ## Recommended Wix page
 
 Create a normal Wix page named:
@@ -22,7 +40,7 @@ Suggested URL slug:
 /joueurs
 ```
 
-On that page, add an HTML / website embed element and use the live GitHub Pages URL above as the external site URL.
+On that page, add an HTML / website embed element and use the French-first live URL above as the external site URL.
 
 ## Layout
 
@@ -56,7 +74,9 @@ Do not paste any API key, `WIX_INTEGRATION_KEY`, Supabase service-role key, or o
 
 ## API activation
 
-The frontend currently falls back to demo player data unless `VITE_API_BASE_URL` is set at build time. Once the shared API has a public HTTPS deployment, configure the GitHub Pages build with the public API base URL and ensure the API allows this browser origin:
+The frontend currently falls back to clearly labelled demo player data unless `VITE_API_BASE_URL` is set at build time. Once the shared API has a public HTTPS deployment, set the GitHub repository variable `VITE_API_BASE_URL` to the public API origin. The Pages workflow already injects that variable into the Vite build.
+
+The API must allow this browser origin:
 
 ```text
 https://irisalukiferriswheel.github.io
