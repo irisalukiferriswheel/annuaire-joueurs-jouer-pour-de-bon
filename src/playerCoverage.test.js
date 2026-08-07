@@ -38,8 +38,17 @@ test('rejects the current basic public directory contract as incomplete for rich
   }), false)
 })
 
+test('requires explicit public routing identity and geography', () => {
+  assert.equal(hasRichPublicProfileData({ ...completePlayer, id: '' }), false)
+  assert.equal(hasRichPublicProfileData({ ...completePlayer, id: undefined }), false)
+  assert.equal(hasRichPublicProfileData({ ...completePlayer, alias: '   ' }), false)
+  assert.equal(hasRichPublicProfileData({ ...completePlayer, province: '' }), false)
+  assert.equal(hasRichPublicProfileData({ ...completePlayer, province: undefined }), false)
+})
+
 test('requires explicit availability and array-shaped public collections', () => {
   assert.equal(hasRichPublicProfileData({ ...completePlayer, availability: undefined }), false)
+  assert.equal(hasRichPublicProfileData({ ...completePlayer, games: undefined }), false)
   assert.equal(hasRichPublicProfileData({ ...completePlayer, reviews: undefined }), false)
 })
 
