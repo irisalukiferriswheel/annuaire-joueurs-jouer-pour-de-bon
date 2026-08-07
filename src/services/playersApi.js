@@ -2,6 +2,7 @@ import { players as demoPlayers } from '../data/players.js'
 
 const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim()
 const API_BASE_URL = configuredBaseUrl ? configuredBaseUrl.replace(/\/$/, '') : ''
+const NO_CAUSE_NAME = 'No cause selected yet'
 
 function initialsFor(name) {
   return name
@@ -41,7 +42,10 @@ function normalizeCause(cause) {
 export function normalizePlayer(player, locale = 'en') {
   const name = player.alias || player.name || player.displayName || player.firstName || 'Player'
   const games = (player.games || []).map((game) => normalizeGame(game, locale)).filter(Boolean)
-  const causes = (player.causes || []).map(normalizeCause).filter(Boolean)
+  const normalizedCauses = (player.causes || []).map(normalizeCause).filter(Boolean)
+  const causes = normalizedCauses.length
+    ? normalizedCauses
+    : [{ name: NO_CAUSE_NAME, contributed: 0, goalReached: false, progress: 0 }]
   const availability = ['now', 'week', 'off'].includes(player.availability) ? player.availability : 'off'
 
   return {
@@ -74,7 +78,11 @@ export function buildFilterOptions(players) {
   return {
     cities: [...new Set(players.map((player) => player.city).filter(Boolean))].sort(),
     games: [...new Set(players.flatMap((player) => player.games || []).filter(Boolean))].sort(),
-    causes: [...new Set(players.flatMap((player) => (player.causes || []).map((cause) => cause.name)).filter(Boolean))].sort(),
+    causes: [...new Set(
+      players
+        .flatMap((player) => (player.causes || []).map((cause) => cause.name))
+        .filter((name) => name && name !== NO_CAUSE_NAME),
+    )].sort(),
   }
 }
 
