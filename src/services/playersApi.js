@@ -1,4 +1,5 @@
 import { players as demoPlayers } from '../data/players.js'
+import { hasRichDirectoryContract } from '../playerCoverage.js'
 import { normalizePublicHttpsUrl } from '../publicUrl.js'
 
 const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim()
@@ -126,6 +127,20 @@ export async function loadPlayers({ locale = 'en-CA', signal } = {}) {
 
     if (!Array.isArray(rawPlayers)) {
       throw new Error('Player API returned an invalid payload')
+    }
+
+    // The current public API intentionally starts with a compact basic-player
+    // contract, while this frontend already displays richer statistics,
+    // reputation, causes, availability, and profile details. Do not turn
+    // missing fields into convincing-looking zeroes. Until every returned
+    // player satisfies the rich public contract, remain visibly in demo mode.
+    if (!hasRichDirectoryContract(rawPlayers)) {
+      console.warn('Public player API is reachable but does not yet satisfy the rich directory contract.')
+      return {
+        players: demoPlayers,
+        source: 'demo',
+        reason: 'api-profile-contract-incomplete',
+      }
     }
 
     return {
