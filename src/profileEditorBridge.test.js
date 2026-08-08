@@ -36,24 +36,15 @@ test('resolves a trusted parent origin from the embedding referrer', () => {
   )
 })
 
-test('accepts messages only from the expected trusted parent window and origin', () => {
+test('accepts structured messages only from the actual parent window', () => {
   const parentWindow = {}
   const event = {
-    origin: WIX_PARENT_ORIGIN,
+    origin: 'https://unexpected-wix-sandbox.example',
     source: parentWindow,
     data: { type: 'JPDB_PROFILE_EDITOR_DATA' },
   }
 
   assert.equal(isTrustedWixParentMessage(event, parentWindow), true)
-  assert.equal(
-    isTrustedWixParentMessage(
-      { ...event, origin: 'https://editor.wix.com' },
-      parentWindow,
-      'https://editor.wix.com',
-    ),
-    true,
-  )
-  assert.equal(isTrustedWixParentMessage({ ...event, origin: 'https://evil.example' }, parentWindow), false)
   assert.equal(isTrustedWixParentMessage({ ...event, source: {} }, parentWindow), false)
   assert.equal(isTrustedWixParentMessage({ ...event, data: null }, parentWindow), false)
 })
