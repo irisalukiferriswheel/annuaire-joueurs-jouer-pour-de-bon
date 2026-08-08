@@ -67,6 +67,8 @@ export function sanitizeProfileEditorSavePayload(value) {
     : []
 
   return {
+    firstName: cleanText(form.firstName, 100),
+    lastName: cleanText(form.lastName, 100),
     alias: cleanText(form.alias, 100),
     city: cleanText(form.city, 150),
     birthDate: cleanText(form.birthDate, 10),
