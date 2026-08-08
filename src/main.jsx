@@ -1,10 +1,12 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
+import EditProfile from './EditProfile.jsx'
 import { filterOptions, players } from './data/players.js'
 import { buildFilterOptions, loadPlayers } from './services/playersApi.js'
 import { getInitialLanguage, localeForLanguage } from './i18n.js'
 import './styles.css'
+import './profileEditor.css'
 
 function updateDataSourceBanner(source, reason, language) {
   const banner = document.getElementById('data-source-banner')
@@ -36,9 +38,26 @@ function updateDataSourceBanner(source, reason, language) {
   banner.hidden = false
 }
 
+function isEditProfileRoute() {
+  return window.location.hash === '#/edit-profile'
+}
+
+function renderRoot(element) {
+  createRoot(document.getElementById('root')).render(
+    <React.StrictMode>{element}</React.StrictMode>,
+  )
+}
+
 async function bootstrap() {
   const language = getInitialLanguage()
   document.documentElement.lang = language
+
+  if (isEditProfileRoute()) {
+    const banner = document.getElementById('data-source-banner')
+    if (banner) banner.hidden = true
+    renderRoot(<EditProfile />)
+    return
+  }
 
   const result = await loadPlayers({ locale: localeForLanguage(language) })
 
@@ -52,25 +71,23 @@ async function bootstrap() {
   window.__JPDB_LANGUAGE__ = language
   updateDataSourceBanner(result.source, result.reason, language)
 
-  createRoot(document.getElementById('root')).render(
-    <React.StrictMode>
-      <App language={language} />
-    </React.StrictMode>,
-  )
+  renderRoot(<App language={language} />)
 }
 
 bootstrap().catch((error) => {
   console.error('Player directory bootstrap failed:', error)
   const language = getInitialLanguage()
   document.documentElement.lang = language
+
+  if (isEditProfileRoute()) {
+    renderRoot(<EditProfile />)
+    return
+  }
+
   window.__JPDB_DATA_SOURCE__ = 'demo'
   window.__JPDB_DATA_REASON__ = 'bootstrap-error'
   window.__JPDB_LANGUAGE__ = language
   updateDataSourceBanner('demo', 'bootstrap-error', language)
 
-  createRoot(document.getElementById('root')).render(
-    <React.StrictMode>
-      <App language={language} />
-    </React.StrictMode>,
-  )
+  renderRoot(<App language={language} />)
 })
