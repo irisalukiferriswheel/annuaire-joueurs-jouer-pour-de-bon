@@ -4,10 +4,39 @@ import assert from 'node:assert/strict'
 import {
   WIX_PARENT_ORIGIN,
   isTrustedWixParentMessage,
+  isTrustedWixParentOrigin,
+  resolveTrustedWixParentOrigin,
   sanitizeProfileEditorSavePayload,
 } from './profileEditorBridge.js'
 
-test('accepts messages only from the exact Wix parent window and origin', () => {
+test('accepts production and Wix editor preview origins only', () => {
+  assert.equal(isTrustedWixParentOrigin(WIX_PARENT_ORIGIN), true)
+  assert.equal(isTrustedWixParentOrigin('https://jouerpourdebon.ca'), true)
+  assert.equal(isTrustedWixParentOrigin('https://editor.wix.com'), true)
+  assert.equal(isTrustedWixParentOrigin('https://simon-jpdb.editor.wix.com'), true)
+  assert.equal(isTrustedWixParentOrigin('https://simon-jpdb.studio.wix.com'), true)
+  assert.equal(isTrustedWixParentOrigin('https://simon-jpdb.harmony.wix.com'), true)
+  assert.equal(isTrustedWixParentOrigin('http://editor.wix.com'), false)
+  assert.equal(isTrustedWixParentOrigin('https://evil.example'), false)
+  assert.equal(isTrustedWixParentOrigin('https://editor.wix.com.evil.example'), false)
+})
+
+test('resolves a trusted parent origin from the embedding referrer', () => {
+  assert.equal(
+    resolveTrustedWixParentOrigin('https://editor.wix.com/html/editor/web/renderer/edit/abc'),
+    'https://editor.wix.com',
+  )
+  assert.equal(
+    resolveTrustedWixParentOrigin('https://simon-jpdb.editor.wix.com/preview'),
+    'https://simon-jpdb.editor.wix.com',
+  )
+  assert.equal(
+    resolveTrustedWixParentOrigin('https://evil.example/embed'),
+    WIX_PARENT_ORIGIN,
+  )
+})
+
+test('accepts messages only from the expected trusted parent window and origin', () => {
   const parentWindow = {}
   const event = {
     origin: WIX_PARENT_ORIGIN,
@@ -16,6 +45,14 @@ test('accepts messages only from the exact Wix parent window and origin', () => 
   }
 
   assert.equal(isTrustedWixParentMessage(event, parentWindow), true)
+  assert.equal(
+    isTrustedWixParentMessage(
+      { ...event, origin: 'https://editor.wix.com' },
+      parentWindow,
+      'https://editor.wix.com',
+    ),
+    true,
+  )
   assert.equal(isTrustedWixParentMessage({ ...event, origin: 'https://evil.example' }, parentWindow), false)
   assert.equal(isTrustedWixParentMessage({ ...event, source: {} }, parentWindow), false)
   assert.equal(isTrustedWixParentMessage({ ...event, data: null }, parentWindow), false)
