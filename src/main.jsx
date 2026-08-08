@@ -10,30 +10,40 @@ function updateDataSourceBanner(source, reason, language) {
   const banner = document.getElementById('data-source-banner')
   if (!banner) return
 
+  const messages = language === 'fr'
+    ? {
+        liveBasic: 'Profils en direct — les joueurs proviennent de l’API Jouer pour de bon. Les statistiques, causes, disponibilités et avis apparaîtront lorsqu’ils seront disponibles.',
+        unavailable: 'Mode prototype — l’API publique est temporairement indisponible; des données de démonstration sont affichées.',
+        demo: 'Mode prototype — données de démonstration, pas de vrais dossiers de joueurs.',
+      }
+    : {
+        liveBasic: 'Live profiles — players are coming from the Playing for Good API. Statistics, causes, availability and reviews will appear as those fields become available.',
+        unavailable: 'Prototype mode — the public API is temporarily unavailable; demo data is shown.',
+        demo: 'Prototype mode — demo data, not real player records.',
+      }
+
+  if (source === 'api' && reason === 'api-basic-profile-contract') {
+    banner.textContent = messages.liveBasic
+    banner.hidden = false
+    return
+  }
+
   if (source === 'api') {
     banner.hidden = true
     banner.textContent = ''
     return
   }
 
-  const messages = language === 'fr'
-    ? {
-        unavailable: 'Mode prototype — l’API publique est temporairement indisponible; des données de démonstration sont affichées.',
-        incomplete: 'Mode prototype — l’API publique répond, mais les profils ne contiennent pas encore toutes les données requises; les données de démonstration restent affichées.',
-        demo: 'Mode prototype — données de démonstration, pas de vrais dossiers de joueurs.',
-      }
-    : {
-        unavailable: 'Prototype mode — the public API is temporarily unavailable; demo data is shown.',
-        incomplete: 'Prototype mode — the public API is responding, but player profiles do not yet contain all required public fields; demo data remains visible.',
-        demo: 'Prototype mode — demo data, not real player records.',
-      }
-
-  banner.textContent = reason === 'api-unavailable'
-    ? messages.unavailable
-    : reason === 'api-profile-contract-incomplete'
-      ? messages.incomplete
-      : messages.demo
+  banner.textContent = reason === 'api-unavailable' ? messages.unavailable : messages.demo
   banner.hidden = false
+}
+
+function renderApp({ language, source, reason }) {
+  createRoot(document.getElementById('root')).render(
+    <React.StrictMode>
+      <App language={language} dataSource={source} dataReason={reason} />
+    </React.StrictMode>,
+  )
 }
 
 async function bootstrap() {
@@ -51,12 +61,7 @@ async function bootstrap() {
   window.__JPDB_DATA_REASON__ = result.reason
   window.__JPDB_LANGUAGE__ = language
   updateDataSourceBanner(result.source, result.reason, language)
-
-  createRoot(document.getElementById('root')).render(
-    <React.StrictMode>
-      <App language={language} />
-    </React.StrictMode>,
-  )
+  renderApp({ language, source: result.source, reason: result.reason })
 }
 
 bootstrap().catch((error) => {
@@ -67,10 +72,5 @@ bootstrap().catch((error) => {
   window.__JPDB_DATA_REASON__ = 'bootstrap-error'
   window.__JPDB_LANGUAGE__ = language
   updateDataSourceBanner('demo', 'bootstrap-error', language)
-
-  createRoot(document.getElementById('root')).render(
-    <React.StrictMode>
-      <App language={language} />
-    </React.StrictMode>,
-  )
+  renderApp({ language, source: 'demo', reason: 'bootstrap-error' })
 })
