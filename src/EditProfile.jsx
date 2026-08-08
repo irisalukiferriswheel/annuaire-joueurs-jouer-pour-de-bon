@@ -20,7 +20,7 @@ import {
 } from './profileEditorBridge.js'
 
 const previewData = {
-  member: { firstName: 'Camille', nickname: 'Camille' },
+  member: { firstName: 'Camille', lastName: 'Martin', nickname: 'Camille' },
   profile: null,
   games: [
     { slug: 'basketball', nameFr: 'Basketball', nameEn: 'Basketball' },
@@ -108,6 +108,8 @@ export default function EditProfile() {
   const [games, setGames] = useState([])
   const [profileExists, setProfileExists] = useState(false)
   const [form, setForm] = useState({
+    firstName: '',
+    lastName: '',
     alias: '',
     city: '',
     birthDate: '',
@@ -130,14 +132,21 @@ export default function EditProfile() {
 
     setMember({
       firstName: typeof incomingMember.firstName === 'string' ? incomingMember.firstName.trim().slice(0, 100) : '',
+      lastName: typeof incomingMember.lastName === 'string' ? incomingMember.lastName.trim().slice(0, 100) : '',
       nickname: typeof incomingMember.nickname === 'string' ? incomingMember.nickname.trim().slice(0, 100) : '',
     })
     setGames(incomingGames)
     setProfileExists(Boolean(profile))
     setForm({
+      firstName: typeof profile?.firstName === 'string'
+        ? profile.firstName.trim().slice(0, 100)
+        : (incomingMember.firstName || '').trim().slice(0, 100),
+      lastName: typeof profile?.lastName === 'string'
+        ? profile.lastName.trim().slice(0, 100)
+        : (incomingMember.lastName || '').trim().slice(0, 100),
       alias: typeof profile?.alias === 'string'
         ? profile.alias.trim().slice(0, 100)
-        : (incomingMember.nickname || incomingMember.firstName || '').trim().slice(0, 100),
+        : (incomingMember.nickname || '').trim().slice(0, 100),
       city: typeof profile?.city === 'string' ? profile.city.trim().slice(0, 150) : '',
       birthDate: typeof profile?.birthDate === 'string' ? profile.birthDate.trim().slice(0, 10) : '',
       games: Array.from(new Set(savedGameSlugs)).slice(0, 50),
@@ -218,6 +227,14 @@ export default function EditProfile() {
     event.preventDefault()
     const payload = sanitizeProfileEditorSavePayload(form)
 
+    if (!payload.firstName) {
+      setError('Entrez votre prénom.')
+      return
+    }
+    if (!payload.lastName) {
+      setError('Entrez votre nom de famille.')
+      return
+    }
     if (!payload.alias) {
       setError('Entrez un nom public / alias.')
       return
@@ -286,14 +303,32 @@ export default function EditProfile() {
           <section className="editor-card">
             <div className="editor-section-title">
               <div className="editor-step">1</div>
-              <div><h2>Votre identité de joueur</h2><p>Ces informations servent à votre profil et à l’admissibilité aux parties.</p></div>
+              <div>
+                <h2>Votre identité</h2>
+                <p>Votre vrai nom reste privé. Votre alias est le nom montré aux autres joueurs.</p>
+              </div>
             </div>
 
             <div className="editor-field-grid">
               <label className="editor-field">
-                <span>Nom public / alias <em>requis</em></span>
-                <input value={form.alias} maxLength={100} required onChange={(event) => update('alias', event.target.value)} placeholder="Ex. Camille" />
+                <span>Prénom <em>requis · privé</em></span>
+                <input value={form.firstName} maxLength={100} required onChange={(event) => update('firstName', event.target.value)} placeholder="Ex. Camille" />
+                <small>Visible seulement dans les futurs outils administratifs autorisés.</small>
               </label>
+              <label className="editor-field">
+                <span>Nom de famille <em>requis · privé</em></span>
+                <input value={form.lastName} maxLength={100} required onChange={(event) => update('lastName', event.target.value)} placeholder="Ex. Martin" />
+                <small>Il n’apparaît jamais dans l’annuaire public.</small>
+              </label>
+            </div>
+
+            <label className="editor-field editor-field--wide">
+              <span>Nom public / alias <em>requis · public</em></span>
+              <input value={form.alias} maxLength={100} required onChange={(event) => update('alias', event.target.value)} placeholder="Ex. CamJoue" />
+              <small>Utilisez un alias qui protège votre identité. C’est ce nom que les autres joueurs verront.</small>
+            </label>
+
+            <div className="editor-field-grid">
               <label className="editor-field">
                 <span><MapPin size={14} /> Ville <em>requise</em></span>
                 <input value={form.city} maxLength={150} required onChange={(event) => update('city', event.target.value)} placeholder="Ex. Sherbrooke" />
@@ -301,7 +336,7 @@ export default function EditProfile() {
               <label className="editor-field">
                 <span>Date de naissance <em>privée</em></span>
                 <input type="date" value={form.birthDate} max={new Date().toISOString().slice(0, 10)} onChange={(event) => update('birthDate', event.target.value)} />
-                <small>Demandée seulement pour vérifier l’âge lorsque l’organisateur impose une limite d’âge. Elle n’apparaît jamais dans l’annuaire public.</small>
+                <small>Demandée seulement pour vérifier l’âge lorsqu’une partie impose une limite d’âge. Elle n’apparaît jamais dans l’annuaire public.</small>
               </label>
             </div>
           </section>
@@ -338,7 +373,7 @@ export default function EditProfile() {
                 checked={form.isPublic}
                 onChange={(value) => update('isPublic', value)}
                 title="Afficher mon profil dans l’annuaire public"
-                description="Cette option est désactivée par défaut. Votre date de naissance et vos informations de connexion ne sont jamais publiées."
+                description="Important si vous voulez que d’autres joueurs puissent vous trouver et vous contacter pour jouer. Seuls votre alias et les informations que nous rendons explicitement publiques seront affichés; votre prénom, nom et date de naissance restent privés."
               />
             </div>
           </section>
@@ -358,12 +393,15 @@ export default function EditProfile() {
                   })
                 : <span>Vos jeux apparaîtront ici</span>}
             </div>
-            <div className="editor-trust"><BadgeCheck size={17} /><span>Alias, ville et au moins un jeu sont nécessaires pour participer aux parties.</span></div>
+            <div className="editor-trust"><BadgeCheck size={17} /><span>Votre vrai nom n’est pas affiché ici. Les autres joueurs voient votre alias.</span></div>
           </section>
 
           <section className="editor-privacy-note">
             <ShieldCheck size={20} />
-            <div><strong>Vos données privées restent privées.</strong><p>La date de naissance sert uniquement aux vérifications d’âge. Elle n’est pas exposée dans l’annuaire.</p></div>
+            <div>
+              <strong>Votre identité réelle reste privée.</strong>
+              <p>Prénom, nom de famille et date de naissance sont conservés pour les besoins administratifs et de sécurité, mais ne sont pas exposés dans l’annuaire public.</p>
+            </div>
           </section>
         </aside>
 
@@ -371,7 +409,7 @@ export default function EditProfile() {
           <div className="editor-submit-status" role="status" aria-live="polite">
             {error && <span className="editor-error">{error}</span>}
             {saved && <span className="editor-success"><Check size={16} /> Profil enregistré. Vous pouvez maintenant rejoindre les parties admissibles.</span>}
-            {!error && !saved && <span><HeartHandshake size={16} /> Les parties « tous âges » ne nécessitent pas de date de naissance.</span>}
+            {!error && !saved && <span><HeartHandshake size={16} /> Votre alias protège votre identité publique; votre vrai nom reste privé.</span>}
           </div>
           <button className="button button--primary editor-save" type="submit" disabled={saving}>
             {saving ? <LoaderCircle className="editor-spinner" size={18} /> : <Save size={18} />}
