@@ -1,0 +1,38 @@
+name: One-time live player directory browser verification
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify live GitHub Pages with headless Chrome
+        shell: bash
+        run: |
+          set -euo pipefail
+          page='https://irisalukiferriswheel.github.io/annuaire-joueurs-jouer-pour-de-bon/?lang=en'
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$browser"
+          "$browser" --headless=new --disable-gpu --no-sandbox \
+            --virtual-time-budget=15000 --dump-dom "$page" > /tmp/live-page.html
+
+          grep -F 'Live profiles' /tmp/live-page.html >/dev/null
+          if grep -F 'Prototype mode' /tmp/live-page.html >/dev/null; then
+            echo 'Live page unexpectedly rendered prototype/demo mode.' >&2
+            exit 1
+          fi
+
+          card_count="$(grep -o 'class="player-card"' /tmp/live-page.html | wc -l | tr -d ' ')"
+          echo "LIVE_PLAYER_CARD_COUNT=$card_count"
+          if [ "$card_count" -ne 11 ]; then
+            echo "Expected 11 live player cards, found $card_count." >&2
+            exit 1
+          fi
+
+          grep -F 'players found' /tmp/live-page.html >/dev/null
+          echo 'Live GitHub Pages rendered real API player data successfully.'
