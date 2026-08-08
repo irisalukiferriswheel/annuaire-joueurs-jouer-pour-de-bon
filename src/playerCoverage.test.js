@@ -1,15 +1,24 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { hasRichDirectoryContract, hasRichPublicProfileData } from './playerCoverage.js'
+import {
+  hasBasicDirectoryContract,
+  hasBasicPublicProfileData,
+  hasRichDirectoryContract,
+  hasRichPublicProfileData,
+} from './playerCoverage.js'
 
-const completePlayer = {
+const basicPlayer = {
   id: 'p1',
   alias: 'Player',
   city: 'Sherbrooke',
+  games: [],
+}
+
+const completePlayer = {
+  ...basicPlayer,
   province: 'QC',
   availability: 'off',
-  games: [],
   causes: [],
   gamesPlayed: 0,
   gamesWon: 0,
@@ -24,37 +33,47 @@ const completePlayer = {
   reviews: [],
 }
 
+test('accepts the compact production player contract as basic public data', () => {
+  assert.equal(hasBasicPublicProfileData(basicPlayer), true)
+  assert.equal(hasBasicDirectoryContract([basicPlayer]), true)
+  assert.equal(hasRichPublicProfileData(basicPlayer), false)
+})
+
+test('allows a basic player to omit city without inventing a location', () => {
+  assert.equal(hasBasicPublicProfileData({ id: 'p2', alias: 'Player 2', city: null, games: [] }), true)
+  assert.equal(hasBasicPublicProfileData({ id: 'p2', alias: 'Player 2', games: [] }), true)
+})
+
+test('basic public data still requires explicit routing identity and games collection', () => {
+  assert.equal(hasBasicPublicProfileData({ ...basicPlayer, id: '' }), false)
+  assert.equal(hasBasicPublicProfileData({ ...basicPlayer, id: undefined }), false)
+  assert.equal(hasBasicPublicProfileData({ ...basicPlayer, alias: '   ' }), false)
+  assert.equal(hasBasicPublicProfileData({ ...basicPlayer, games: undefined }), false)
+  assert.equal(hasBasicPublicProfileData({ ...basicPlayer, city: 123 }), false)
+})
+
 test('accepts a rich public profile even when legitimate values are zero or empty', () => {
   assert.equal(hasRichPublicProfileData(completePlayer), true)
   assert.equal(hasRichDirectoryContract([completePlayer]), true)
 })
 
-test('rejects the current basic public directory contract as incomplete for rich UI', () => {
-  assert.equal(hasRichPublicProfileData({
-    id: 'p1',
-    alias: 'Player',
-    city: 'Sherbrooke',
-    games: [],
-  }), false)
-})
-
-test('requires explicit public routing identity and geography', () => {
-  assert.equal(hasRichPublicProfileData({ ...completePlayer, id: '' }), false)
-  assert.equal(hasRichPublicProfileData({ ...completePlayer, id: undefined }), false)
-  assert.equal(hasRichPublicProfileData({ ...completePlayer, alias: '   ' }), false)
+test('rich profiles require explicit geography and availability', () => {
   assert.equal(hasRichPublicProfileData({ ...completePlayer, province: '' }), false)
   assert.equal(hasRichPublicProfileData({ ...completePlayer, province: undefined }), false)
-})
-
-test('requires explicit availability and array-shaped public collections', () => {
   assert.equal(hasRichPublicProfileData({ ...completePlayer, availability: undefined }), false)
-  assert.equal(hasRichPublicProfileData({ ...completePlayer, games: undefined }), false)
-  assert.equal(hasRichPublicProfileData({ ...completePlayer, reviews: undefined }), false)
 })
 
-test('all API players must satisfy the rich profile contract before cutover', () => {
-  assert.equal(hasRichDirectoryContract([
+test('rich profiles require the richer public collections', () => {
+  assert.equal(hasRichPublicProfileData({ ...completePlayer, reviews: undefined }), false)
+  assert.equal(hasRichPublicProfileData({ ...completePlayer, causes: undefined }), false)
+})
+
+test('a directory can be valid for basic live mode without every player being rich', () => {
+  const mixed = [
     completePlayer,
     { id: 'p2', alias: 'Basic', city: 'Granby', games: [] },
-  ]), false)
+  ]
+
+  assert.equal(hasBasicDirectoryContract(mixed), true)
+  assert.equal(hasRichDirectoryContract(mixed), false)
 })

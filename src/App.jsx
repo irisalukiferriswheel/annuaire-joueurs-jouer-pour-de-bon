@@ -35,6 +35,16 @@ function moneyFormatter(language) {
   })
 }
 
+function isRichPlayer(player) {
+  // Checked-in demo profiles predate profileLevel and are intentionally rich.
+  return player.profileLevel !== 'basic'
+}
+
+function locationLabel(player, language) {
+  const location = [player.city, player.province].filter(Boolean).join(', ')
+  return location || copy[language].locationNotListed
+}
+
 function LanguageSwitcher({ language }) {
   return (
     <div
@@ -98,7 +108,8 @@ function Stat({ icon: Icon, value, label }) {
 function PlayerCard({ player, onOpen, language }) {
   const c = copy[language]
   const money = moneyFormatter(language)
-  const primaryCause = player.causes[0]
+  const rich = isRichPlayer(player)
+  const primaryCause = player.causes?.[0]
 
   return (
     <article className="player-card">
@@ -107,36 +118,48 @@ function PlayerCard({ player, onOpen, language }) {
         <div className="player-card__identity">
           <div className="player-card__name-row">
             <h2>{player.name}</h2>
-            <Availability status={player.availability} language={language} compact />
+            {player.availability && (
+              <Availability status={player.availability} language={language} compact />
+            )}
           </div>
-          <p><MapPin size={15} /> {player.city}, {player.province}</p>
-          <Stars value={player.rating} count={player.reviewCount} language={language} />
+          <p><MapPin size={15} /> {locationLabel(player, language)}</p>
+          {typeof player.rating === 'number' && (
+            <Stars value={player.rating} count={player.reviewCount} language={language} />
+          )}
         </div>
       </div>
 
-      <div className="chips" aria-label={c.games}>
-        {player.games.map((game) => (
-          <span className="chip" key={game}>{translateGame(game, language)}</span>
-        ))}
-      </div>
+      {player.games.length > 0 && (
+        <div className="chips" aria-label={c.games}>
+          {player.games.map((game) => (
+            <span className="chip" key={game}>{translateGame(game, language)}</span>
+          ))}
+        </div>
+      )}
 
-      <div className="cause-line">
-        <HeartHandshake size={17} />
-        <span>{c.playsFor} <strong>{primaryCause.name}</strong>{player.causes.length > 1 ? ` +${player.causes.length - 1}` : ''}</span>
-      </div>
+      {primaryCause && (
+        <div className="cause-line">
+          <HeartHandshake size={17} />
+          <span>{c.playsFor} <strong>{primaryCause.name}</strong>{player.causes.length > 1 ? ` +${player.causes.length - 1}` : ''}</span>
+        </div>
+      )}
 
-      <div className="card-stats">
-        <Stat icon={Gamepad2} value={player.gamesPlayed} label={c.games} />
-        <Stat icon={Trophy} value={player.gamesWon} label={c.wins} />
-        <Stat icon={CircleDollarSign} value={money.format(player.averagePaid)} label={c.avgGame} />
-        <Stat icon={HeartHandshake} value={money.format(player.totalToCauses)} label={c.toCauses} />
-      </div>
+      {rich && (
+        <>
+          <div className="card-stats">
+            <Stat icon={Gamepad2} value={player.gamesPlayed} label={c.games} />
+            <Stat icon={Trophy} value={player.gamesWon} label={c.wins} />
+            <Stat icon={CircleDollarSign} value={money.format(player.averagePaid)} label={c.avgGame} />
+            <Stat icon={HeartHandshake} value={money.format(player.totalToCauses)} label={c.toCauses} />
+          </div>
 
-      <div className="impact-line">
-        <Target size={16} />
-        <strong>{player.goalsReached}</strong>{' '}
-        {player.goalsReached === 1 ? c.crowdfundingGoal : c.crowdfundingGoals}
-      </div>
+          <div className="impact-line">
+            <Target size={16} />
+            <strong>{player.goalsReached}</strong>{' '}
+            {player.goalsReached === 1 ? c.crowdfundingGoal : c.crowdfundingGoals}
+          </div>
+        </>
+      )}
 
       <button className="button button--primary button--card" onClick={() => onOpen(player.id)}>
         {c.viewProfile} <ChevronRight size={17} />
@@ -145,13 +168,13 @@ function PlayerCard({ player, onOpen, language }) {
   )
 }
 
-function EmptyState({ reset, language }) {
+function EmptyState({ reset, language, basicMode = false }) {
   const c = copy[language]
   return (
     <div className="empty-state">
       <Search size={34} />
       <h2>{c.noMatches}</h2>
-      <p>{c.noMatchesHelp}</p>
+      <p>{basicMode ? c.noMatchesHelpBasic : c.noMatchesHelp}</p>
       <button className="button button--secondary" onClick={reset}>
         <RotateCcw size={17} /> {c.resetFilters}
       </button>
@@ -159,28 +182,33 @@ function EmptyState({ reset, language }) {
   )
 }
 
-function Directory({ onOpen, language }) {
+function Directory({ onOpen, language, dataSource, dataReason }) {
   const c = copy[language]
   const [query, setQuery] = useState('')
   const [city, setCity] = useState('')
   const [game, setGame] = useState('')
   const [cause, setCause] = useState('')
   const [availableOnly, setAvailableOnly] = useState(false)
+  const basicMode = dataSource === 'api' && dataReason === 'api-basic-profile-contract'
+  const supportsCauseFilter = filterOptions.causes.length > 0
+  const supportsAvailabilityFilter = players.some((player) => Boolean(player.availability))
 
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase()
     return players.filter((player) => {
       const localizedGames = player.games.map((item) => translateGame(item, language))
-      const matchesSearch = !term || [
+      const searchableValues = [
         player.name,
         player.city,
+        player.province,
         ...player.games,
         ...localizedGames,
-        ...player.causes.map((item) => item.name),
-      ].some((value) => value.toLowerCase().includes(term))
+        ...(player.causes || []).map((item) => item.name),
+      ].filter((value) => typeof value === 'string')
+      const matchesSearch = !term || searchableValues.some((value) => value.toLowerCase().includes(term))
       const matchesCity = !city || player.city === city
       const matchesGame = !game || player.games.includes(game)
-      const matchesCause = !cause || player.causes.some((item) => item.name === cause)
+      const matchesCause = !cause || (player.causes || []).some((item) => item.name === cause)
       const matchesAvailability = !availableOnly || player.availability === 'now' || player.availability === 'week'
       return matchesSearch && matchesCity && matchesGame && matchesCause && matchesAvailability
     })
@@ -202,7 +230,7 @@ function Directory({ onOpen, language }) {
           <LanguageSwitcher language={language} />
         </div>
         <h1>{c.heroTitle}</h1>
-        <p>{c.heroText}</p>
+        <p>{basicMode ? c.heroTextBasic : c.heroText}</p>
       </section>
 
       <section className="search-panel" aria-label={c.filtersLabel}>
@@ -234,18 +262,22 @@ function Directory({ onOpen, language }) {
               ))}
             </select>
           </label>
-          <label>
-            <span>{c.cause}</span>
-            <select value={cause} onChange={(event) => setCause(event.target.value)}>
-              <option value="">{c.allCauses}</option>
-              {filterOptions.causes.map((item) => <option key={item}>{item}</option>)}
-            </select>
-          </label>
-          <label className="available-toggle">
-            <input type="checkbox" checked={availableOnly} onChange={(event) => setAvailableOnly(event.target.checked)} />
-            <span className="available-toggle__fake" aria-hidden="true" />
-            <span><strong>{c.available}</strong><small>{c.readyToPlay}</small></span>
-          </label>
+          {supportsCauseFilter && (
+            <label>
+              <span>{c.cause}</span>
+              <select value={cause} onChange={(event) => setCause(event.target.value)}>
+                <option value="">{c.allCauses}</option>
+                {filterOptions.causes.map((item) => <option key={item}>{item}</option>)}
+              </select>
+            </label>
+          )}
+          {supportsAvailabilityFilter && (
+            <label className="available-toggle">
+              <input type="checkbox" checked={availableOnly} onChange={(event) => setAvailableOnly(event.target.checked)} />
+              <span className="available-toggle__fake" aria-hidden="true" />
+              <span><strong>{c.available}</strong><small>{c.readyToPlay}</small></span>
+            </label>
+          )}
         </div>
       </section>
 
@@ -265,9 +297,9 @@ function Directory({ onOpen, language }) {
             <PlayerCard player={player} key={player.id} onOpen={onOpen} language={language} />
           ))}
         </section>
-      ) : <EmptyState reset={reset} language={language} />}
+      ) : <EmptyState reset={reset} language={language} basicMode={basicMode} />}
 
-      <p className="demo-note">{c.prototypeNote}</p>
+      {dataSource !== 'api' && <p className="demo-note">{c.prototypeNote}</p>}
     </main>
   )
 }
@@ -275,7 +307,10 @@ function Directory({ onOpen, language }) {
 function Profile({ player, onBack, language }) {
   const c = copy[language]
   const money = moneyFormatter(language)
-  const winRate = player.gamesPlayed ? Math.round((player.gamesWon / player.gamesPlayed) * 100) : 0
+  const rich = isRichPlayer(player)
+  const winRate = rich && player.gamesPlayed
+    ? Math.round((player.gamesWon / player.gamesPlayed) * 100)
+    : 0
   const bio = language === 'fr' && player.bioFr ? player.bioFr : player.bio
 
   return (
@@ -290,122 +325,135 @@ function Profile({ player, onBack, language }) {
         <div className="profile-hero__main">
           <div className="profile-title-row">
             <h1>{player.name}</h1>
-            <BadgeCheck size={22} className="verified-icon" aria-label={c.verifiedPlayer} />
+            {rich && <BadgeCheck size={22} className="verified-icon" aria-label={c.verifiedPlayer} />}
           </div>
-          <p className="location"><MapPin size={16} /> {player.city}, {player.province}</p>
-          <Availability status={player.availability} language={language} />
-          <div className="profile-rating">
-            <Stars value={player.rating} count={player.reviewCount} language={language} />
-            <span>{c.communityRating}</span>
+          <p className="location"><MapPin size={16} /> {locationLabel(player, language)}</p>
+          {player.availability && <Availability status={player.availability} language={language} />}
+          {typeof player.rating === 'number' && (
+            <div className="profile-rating">
+              <Stars value={player.rating} count={player.reviewCount} language={language} />
+              <span>{c.communityRating}</span>
+            </div>
+          )}
+        </div>
+        {player.socials.length > 0 && (
+          <div className="profile-socials">
+            {player.socials.map((social) => (
+              <a className="button button--secondary" href={social.url} target="_blank" rel="noreferrer" key={social.label}>
+                <MessageCircle size={17} /> {social.label} <ExternalLink size={14} />
+              </a>
+            ))}
           </div>
-        </div>
-        <div className="profile-socials">
-          {player.socials.map((social) => (
-            <a className="button button--secondary" href={social.url} target="_blank" rel="noreferrer" key={social.label}>
-              <MessageCircle size={17} /> {social.label} <ExternalLink size={14} />
-            </a>
-          ))}
-        </div>
+        )}
       </section>
 
-      <section className="profile-layout">
+      <section className="profile-layout" style={rich ? undefined : { gridTemplateColumns: 'minmax(0, 1fr)' }}>
         <div className="profile-main">
           <section className="panel">
             <h2>{c.about} {player.name}</h2>
-            <p className="body-copy">{bio}</p>
-            <div className="chips chips--large">
-              {player.games.map((game) => (
-                <span className="chip" key={game}>{translateGame(game, language)}</span>
-              ))}
-            </div>
+            {bio
+              ? <p className="body-copy">{bio}</p>
+              : !rich && <p className="body-copy muted">{c.profileDetailsPending}</p>}
+            {player.games.length > 0 && (
+              <div className="chips chips--large">
+                {player.games.map((game) => (
+                  <span className="chip" key={game}>{translateGame(game, language)}</span>
+                ))}
+              </div>
+            )}
           </section>
 
-          <section className="panel">
-            <div className="section-title">
-              <div>
-                <span className="section-kicker">{c.causeImpact}</span>
-                <h2>{c.causeImpactTitle}</h2>
+          {rich && player.causes.length > 0 && (
+            <section className="panel">
+              <div className="section-title">
+                <div>
+                  <span className="section-kicker">{c.causeImpact}</span>
+                  <h2>{c.causeImpactTitle}</h2>
+                </div>
+                <HeartHandshake size={24} />
               </div>
-              <HeartHandshake size={24} />
-            </div>
-            <div className="cause-list">
-              {player.causes.map((cause) => (
-                <article className="cause-card" key={cause.name}>
-                  <div className="cause-card__heading">
-                    <div>
-                      <h3>{cause.name}</h3>
-                      <p>{money.format(cause.contributed)} {c.attributedContribution}</p>
+              <div className="cause-list">
+                {player.causes.map((cause) => (
+                  <article className="cause-card" key={cause.name}>
+                    <div className="cause-card__heading">
+                      <div>
+                        <h3>{cause.name}</h3>
+                        <p>{money.format(cause.contributed)} {c.attributedContribution}</p>
+                      </div>
+                      {cause.goalReached && <span className="goal-badge"><Target size={15} /> {c.goalReached}</span>}
                     </div>
-                    {cause.goalReached && <span className="goal-badge"><Target size={15} /> {c.goalReached}</span>}
-                  </div>
-                  <div className="progress" aria-label={`${cause.progress}% ${c.crowdfundingTarget}`}>
-                    <span style={{ width: `${cause.progress}%` }} />
-                  </div>
-                  <small>{cause.progress}% {c.crowdfundingTarget}</small>
-                </article>
-              ))}
-            </div>
-          </section>
-
-          <section className="panel">
-            <div className="section-title">
-              <div>
-                <span className="section-kicker">{c.communityFeedback}</span>
-                <h2>{c.reviewsTitle}</h2>
-              </div>
-              <ShieldCheck size={24} />
-            </div>
-
-            <div className="reputation-tags">
-              {player.tags.map((tag) => (
-                <span key={tag}><BadgeCheck size={15} /> {translateTag(tag, language)}</span>
-              ))}
-            </div>
-
-            <div className="reviews">
-              {player.reviews.length ? player.reviews.map((review, index) => {
-                const reviewText = language === 'fr' && review.textFr ? review.textFr : review.text
-                return (
-                  <article className="review" key={`${review.author}-${index}`}>
-                    <div className="review__top">
-                      <strong>{review.author}</strong>
-                      <Stars value={review.rating} language={language} />
+                    <div className="progress" aria-label={`${cause.progress}% ${c.crowdfundingTarget}`}>
+                      <span style={{ width: `${cause.progress}%` }} />
                     </div>
-                    <p>{reviewText}</p>
-                    <small>{c.playedTogether} · {translateGame(review.game, language)}</small>
+                    <small>{cause.progress}% {c.crowdfundingTarget}</small>
                   </article>
-                )
-              }) : <p className="muted">{c.noReviews}</p>}
-            </div>
+                ))}
+              </div>
+            </section>
+          )}
 
-            <div className="review-actions">
-              <button className="button button--primary" title={c.reviewButtonTitle}>
-                <Star size={17} /> {c.leaveReview}
-              </button>
-              <button className="button button--danger" title={c.reportButtonTitle}>
-                <Flag size={17} /> {c.reportConcern}
-              </button>
-            </div>
-            <p className="safety-note"><ShieldCheck size={16} /> {c.safetyNote}</p>
-          </section>
+          {rich && (
+            <section className="panel">
+              <div className="section-title">
+                <div>
+                  <span className="section-kicker">{c.communityFeedback}</span>
+                  <h2>{c.reviewsTitle}</h2>
+                </div>
+                <ShieldCheck size={24} />
+              </div>
+
+              <div className="reputation-tags">
+                {player.tags.map((tag) => (
+                  <span key={tag}><BadgeCheck size={15} /> {translateTag(tag, language)}</span>
+                ))}
+              </div>
+
+              <div className="reviews">
+                {player.reviews.length ? player.reviews.map((review, index) => {
+                  const reviewText = language === 'fr' && review.textFr ? review.textFr : review.text
+                  return (
+                    <article className="review" key={`${review.author}-${index}`}>
+                      <div className="review__top">
+                        <strong>{review.author}</strong>
+                        <Stars value={review.rating} language={language} />
+                      </div>
+                      <p>{reviewText}</p>
+                      <small>{c.playedTogether} · {translateGame(review.game, language)}</small>
+                    </article>
+                  )
+                }) : <p className="muted">{c.noReviews}</p>}
+              </div>
+
+              <div className="review-actions">
+                <button className="button button--primary" title={c.reviewButtonTitle}>
+                  <Star size={17} /> {c.leaveReview}
+                </button>
+                <button className="button button--danger" title={c.reportButtonTitle}>
+                  <Flag size={17} /> {c.reportConcern}</button>
+              </div>
+              <p className="safety-note"><ShieldCheck size={16} /> {c.safetyNote}</p>
+            </section>
+          )}
         </div>
 
-        <aside className="profile-aside">
-          <section className="panel panel--sticky">
-            <span className="section-kicker">{c.playerRecord}</span>
-            <div className="big-stat"><strong>{player.gamesPlayed}</strong><span>{c.gamesPlayed}</span></div>
-            <div className="aside-grid">
-              <Stat icon={Trophy} value={player.gamesWon} label={c.wins} />
-              <Stat icon={Target} value={`${winRate}%`} label={c.winRate} />
-              <Stat icon={CircleDollarSign} value={money.format(player.averagePaid)} label={c.avgGame} />
-              <Stat icon={HeartHandshake} value={money.format(player.totalToCauses)} label={c.toCauses} />
-            </div>
-            <div className="goal-summary">
-              <Target size={19} />
-              <div><strong>{player.goalsReached}</strong><span>{c.goalsReached}</span></div>
-            </div>
-          </section>
-        </aside>
+        {rich && (
+          <aside className="profile-aside">
+            <section className="panel panel--sticky">
+              <span className="section-kicker">{c.playerRecord}</span>
+              <div className="big-stat"><strong>{player.gamesPlayed}</strong><span>{c.gamesPlayed}</span></div>
+              <div className="aside-grid">
+                <Stat icon={Trophy} value={player.gamesWon} label={c.wins} />
+                <Stat icon={Target} value={`${winRate}%`} label={c.winRate} />
+                <Stat icon={CircleDollarSign} value={money.format(player.averagePaid)} label={c.avgGame} />
+                <Stat icon={HeartHandshake} value={money.format(player.totalToCauses)} label={c.toCauses} />
+              </div>
+              <div className="goal-summary">
+                <Target size={19} />
+                <div><strong>{player.goalsReached}</strong><span>{c.goalsReached}</span></div>
+              </div>
+            </section>
+          </aside>
+        )}
       </section>
     </main>
   )
@@ -416,7 +464,7 @@ function currentPlayerId() {
   return match?.[1] || null
 }
 
-export default function App({ language = 'en' }) {
+export default function App({ language = 'en', dataSource = 'demo', dataReason = null }) {
   const [playerId, setPlayerId] = useState(currentPlayerId)
 
   useEffect(() => {
@@ -439,5 +487,5 @@ export default function App({ language = 'en' }) {
 
   return selectedPlayer
     ? <Profile player={selectedPlayer} onBack={backToDirectory} language={language} />
-    : <Directory onOpen={openPlayer} language={language} />
+    : <Directory onOpen={openPlayer} language={language} dataSource={dataSource} dataReason={dataReason} />
 }

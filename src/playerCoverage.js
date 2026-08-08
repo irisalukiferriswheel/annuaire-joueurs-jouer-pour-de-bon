@@ -1,4 +1,4 @@
-const requiredScalarFields = [
+const requiredRichScalarFields = [
   'gamesPlayed',
   'gamesWon',
   'averagePaid',
@@ -9,8 +9,7 @@ const requiredScalarFields = [
   'bio',
 ]
 
-const requiredArrayFields = [
-  'games',
+const requiredRichArrayFields = [
   'causes',
   'tags',
   'socials',
@@ -25,26 +24,43 @@ function isNonEmptyString(value) {
   return typeof value === 'string' && value.trim().length > 0
 }
 
-export function hasRichPublicProfileData(player) {
+export function hasBasicPublicProfileData(player) {
   if (!player || typeof player !== 'object') return false
 
-  // Public routing and display identity must be explicit. Do not normalize a
-  // malformed API row into a convincing placeholder profile.
+  // Routing/display identity must always be explicit. A malformed API row
+  // should never be normalized into a convincing placeholder player.
   if (!isNonEmptyString(player.id)) return false
   if (!isNonEmptyString(player.alias)) return false
+  if (!Array.isArray(player.games)) return false
 
-  // The current UI explicitly renders province beside city. Requiring an
-  // explicit value prevents a client-side regional default from inventing
-  // geography for a real public profile.
+  // City is allowed to be absent/null in the compact public contract. When it
+  // is present it must be a string; the UI will say that location is not listed
+  // rather than inventing geography.
+  if (player.city !== undefined && player.city !== null && typeof player.city !== 'string') {
+    return false
+  }
+
+  return true
+}
+
+export function hasBasicDirectoryContract(players) {
+  return Array.isArray(players) && players.every(hasBasicPublicProfileData)
+}
+
+export function hasRichPublicProfileData(player) {
+  if (!hasBasicPublicProfileData(player)) return false
+
+  // The rich UI explicitly renders province and availability. Requiring those
+  // fields prevents a client-side regional/status default from making missing
+  // production data look real.
   if (!isNonEmptyString(player.province)) return false
-
   if (!['now', 'week', 'off'].includes(player.availability)) return false
 
-  for (const field of requiredScalarFields) {
+  for (const field of requiredRichScalarFields) {
     if (!hasOwn(player, field)) return false
   }
 
-  for (const field of requiredArrayFields) {
+  for (const field of requiredRichArrayFields) {
     if (!Array.isArray(player[field])) return false
   }
 

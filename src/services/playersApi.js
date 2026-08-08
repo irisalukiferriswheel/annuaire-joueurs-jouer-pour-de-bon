@@ -1,8 +1,12 @@
 import { players as demoPlayers } from '../data/players.js'
-import { hasRichDirectoryContract } from '../playerCoverage.js'
+import {
+  hasBasicDirectoryContract,
+  hasRichDirectoryContract,
+  hasRichPublicProfileData,
+} from '../playerCoverage.js'
 import { normalizePublicHttpsUrl } from '../publicUrl.js'
 
-const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim()
+const configuredBaseUrl = import.meta.env?.VITE_API_BASE_URL?.trim()
 const API_BASE_URL = configuredBaseUrl ? configuredBaseUrl.replace(/\/$/, '') : ''
 const NO_CAUSE_NAMES = new Set(['No cause selected yet', 'Aucune cause sélectionnée'])
 
@@ -13,6 +17,10 @@ function initialsFor(name) {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() || '')
     .join('') || 'P'
+}
+
+function normalizedOptionalText(value) {
+  return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
 function normalizeGame(game, locale = 'en') {
@@ -53,44 +61,67 @@ function normalizeSocial(social) {
 }
 
 export function normalizePlayer(player, locale = 'en') {
-  const isFrench = locale.toLowerCase().startsWith('fr')
-  const name = player.alias || player.name || player.displayName || player.firstName || (isFrench ? 'Joueur' : 'Player')
+  const isRich = hasRichPublicProfileData(player)
+  const name = player.alias || player.name || player.displayName || player.firstName || 'Player'
   const games = (player.games || []).map((game) => normalizeGame(game, locale)).filter(Boolean)
-  const normalizedCauses = (player.causes || []).map(normalizeCause).filter(Boolean)
-  const causes = normalizedCauses.length
-    ? normalizedCauses
-    : [{
-        name: isFrench ? 'Aucune cause sélectionnée' : 'No cause selected yet',
-        contributed: 0,
-        goalReached: false,
-        progress: 0,
-      }]
-  const availability = ['now', 'week', 'off'].includes(player.availability) ? player.availability : 'off'
+
+  // For compact live profiles, missing rich fields remain genuinely missing.
+  // Do not create a fake cause, availability status, province, or zero-valued
+  // record just to satisfy components that were originally built for demos.
+  if (!isRich) {
+    return {
+      id: String(player.id),
+      name,
+      initials: player.initials || initialsFor(name),
+      city: normalizedOptionalText(player.city),
+      province: null,
+      availability: null,
+      availabilityLabel: null,
+      games,
+      causes: [],
+      gamesPlayed: null,
+      gamesWon: null,
+      averagePaid: null,
+      totalToCauses: null,
+      goalsReached: null,
+      rating: null,
+      reviewCount: null,
+      tags: [],
+      bio: '',
+      bioFr: '',
+      socials: [],
+      reviews: [],
+      profileLevel: 'basic',
+    }
+  }
+
+  const availability = player.availability
 
   return {
     id: String(player.id),
     name,
     initials: player.initials || initialsFor(name),
-    city: player.city || (isFrench ? 'Ville non indiquée' : 'City not listed'),
-    province: player.province,
+    city: normalizedOptionalText(player.city),
+    province: normalizedOptionalText(player.province),
     availability,
     availabilityLabel: player.availabilityLabel || (
       availability === 'now' ? 'Available now' : availability === 'week' ? 'Available this week' : 'Not currently available'
     ),
     games,
-    causes,
-    gamesPlayed: Number(player.gamesPlayed ?? 0),
-    gamesWon: Number(player.gamesWon ?? 0),
-    averagePaid: Number(player.averagePaid ?? 0),
-    totalToCauses: Number(player.totalToCauses ?? 0),
-    goalsReached: Number(player.goalsReached ?? 0),
-    rating: Number(player.rating ?? 0),
-    reviewCount: Number(player.reviewCount ?? 0),
+    causes: (player.causes || []).map(normalizeCause).filter(Boolean),
+    gamesPlayed: Number(player.gamesPlayed),
+    gamesWon: Number(player.gamesWon),
+    averagePaid: Number(player.averagePaid),
+    totalToCauses: Number(player.totalToCauses),
+    goalsReached: Number(player.goalsReached),
+    rating: Number(player.rating),
+    reviewCount: Number(player.reviewCount),
     tags: Array.isArray(player.tags) ? player.tags : [],
     bio: player.bio || '',
     bioFr: player.bioFr || '',
     socials: Array.isArray(player.socials) ? player.socials.map(normalizeSocial).filter(Boolean) : [],
     reviews: Array.isArray(player.reviews) ? player.reviews : [],
+    profileLevel: 'rich',
   }
 }
 
@@ -125,29 +156,16 @@ export async function loadPlayers({ locale = 'en-CA', signal } = {}) {
     const payload = await response.json()
     const rawPlayers = Array.isArray(payload) ? payload : payload?.data
 
-    if (!Array.isArray(rawPlayers)) {
-      throw new Error('Player API returned an invalid payload')
+    if (!hasBasicDirectoryContract(rawPlayers)) {
+      throw new Error('Player API returned an invalid public-player payload')
     }
 
-    // The current public API intentionally starts with a compact basic-player
-    // contract, while this frontend already displays richer statistics,
-    // reputation, causes, availability, and profile details. Do not turn
-    // missing fields into convincing-looking zeroes or invented geography.
-    // Until every returned player satisfies the rich public contract, remain
-    // visibly in demo mode.
-    if (!hasRichDirectoryContract(rawPlayers)) {
-      console.warn('Public player API is reachable but does not yet satisfy the rich directory contract.')
-      return {
-        players: demoPlayers,
-        source: 'demo',
-        reason: 'api-profile-contract-incomplete',
-      }
-    }
+    const richContract = hasRichDirectoryContract(rawPlayers)
 
     return {
       players: rawPlayers.map((player) => normalizePlayer(player, locale)),
       source: 'api',
-      reason: null,
+      reason: richContract ? null : 'api-basic-profile-contract',
     }
   } catch (error) {
     if (error?.name === 'AbortError') throw error
