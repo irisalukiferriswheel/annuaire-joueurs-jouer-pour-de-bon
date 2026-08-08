@@ -69,6 +69,7 @@ export function sanitizeProfileEditorSavePayload(value) {
   return {
     alias: cleanText(form.alias, 100),
     city: cleanText(form.city, 150),
+    birthDate: cleanText(form.birthDate, 10),
     games,
     newGame: cleanText(form.newGame, 150),
     wantsToOrganize: Boolean(form.wantsToOrganize),
