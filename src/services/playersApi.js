@@ -139,26 +139,26 @@ export async function searchPlayers({
   query = '',
   city = '',
   game = '',
-  page = 1,
+  cursor = '',
   limit = 24,
   signal,
 } = {}) {
   if (!API_BASE_URL) {
     return {
       players: demoPlayers,
-      pagination: { page: 1, limit: demoPlayers.length, total: demoPlayers.length, totalPages: 1, hasNext: false, hasPrevious: false },
+      pagination: { limit: demoPlayers.length, hasNext: false, nextCursor: null },
       source: 'demo',
       reason: 'api-not-configured',
     }
   }
 
   const params = new URLSearchParams({
-    page: String(Math.max(1, Number(page) || 1)),
     limit: String(Math.max(1, Math.min(100, Number(limit) || 24))),
   })
   if (query.trim()) params.set('q', query.trim())
   if (city.trim()) params.set('city', city.trim())
   if (game.trim()) params.set('game', game.trim())
+  if (cursor.trim()) params.set('cursor', cursor.trim())
 
   const response = await fetch(`${API_BASE_URL}/v1/public/players/search?${params}`, {
     method: 'GET',
@@ -188,7 +188,7 @@ export async function searchPlayers({
 
 export async function loadPlayers({ locale = 'en-CA', signal } = {}) {
   try {
-    return await searchPlayers({ locale, page: 1, limit: 100, signal })
+    return await searchPlayers({ locale, limit: 48, signal })
   } catch (error) {
     if (error?.name === 'AbortError') throw error
     console.warn('Falling back to demo player data:', error)
