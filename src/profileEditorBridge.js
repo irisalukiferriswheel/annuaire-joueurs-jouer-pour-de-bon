@@ -1,4 +1,4 @@
-export const WIX_PARENT_ORIGIN = 'https://www.jouerpourdebon.ca'
+export const DEFAULT_WIX_PARENT_ORIGIN = 'https://www.jouerpourdebon.ca'
 
 const TRUSTED_WIX_HOSTS = new Set([
   'editor.wix.com',
@@ -25,7 +25,7 @@ function cleanText(value, maxLength) {
 }
 
 export function isTrustedWixParentOrigin(origin) {
-  if (origin === WIX_PARENT_ORIGIN || origin === 'https://jouerpourdebon.ca') {
+  if (origin === DEFAULT_WIX_PARENT_ORIGIN || origin === 'https://jouerpourdebon.ca') {
     return true
   }
 
@@ -44,11 +44,16 @@ export function isTrustedWixParentOrigin(origin) {
 export function resolveTrustedWixParentOrigin(referrer) {
   try {
     const origin = new URL(referrer).origin
-    return isTrustedWixParentOrigin(origin) ? origin : WIX_PARENT_ORIGIN
+    return isTrustedWixParentOrigin(origin) ? origin : DEFAULT_WIX_PARENT_ORIGIN
   } catch {
-    return WIX_PARENT_ORIGIN
+    return DEFAULT_WIX_PARENT_ORIGIN
   }
 }
+
+export const WIX_PARENT_ORIGIN =
+  typeof document !== 'undefined'
+    ? resolveTrustedWixParentOrigin(document.referrer)
+    : DEFAULT_WIX_PARENT_ORIGIN
 
 export function sanitizeProfileEditorSavePayload(value) {
   const form = value && typeof value === 'object' ? value : {}
