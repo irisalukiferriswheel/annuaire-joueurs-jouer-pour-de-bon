@@ -2,6 +2,7 @@ import React from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 import EditProfile from './EditProfile.jsx'
+import AdminPlayers from './AdminPlayers.jsx'
 import { filterOptions, players } from './data/players.js'
 import { buildFilterOptions, loadPlayers } from './services/playersApi.js'
 import { getInitialLanguage, localeForLanguage } from './i18n.js'
@@ -9,21 +10,29 @@ import './styles.css'
 import './profileEditor.css'
 
 const PROFILE_EDITOR_HASH = '#/complete-profile'
+const ADMIN_PLAYERS_HASH = '#/admin/players'
 const LEGACY_PROFILE_EDITOR_HASH = '#/edit-profile'
 
 function isProfileEditorRoute() {
   return window.location.hash === PROFILE_EDITOR_HASH
 }
 
+function isAdminPlayersRoute() {
+  return window.location.hash === ADMIN_PLAYERS_HASH
+}
+
 function clearLegacyProfileEditorRoute() {
   if (window.location.hash !== LEGACY_PROFILE_EDITOR_HASH) return false
-
-  window.history.replaceState(
-    null,
-    '',
-    `${window.location.pathname}${window.location.search}`,
-  )
+  window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`)
   return true
+}
+
+function hideDataSourceBanner() {
+  const banner = document.getElementById('data-source-banner')
+  if (banner) {
+    banner.hidden = true
+    banner.textContent = ''
+  }
 }
 
 function updateDataSourceBanner(source, reason, language) {
@@ -49,8 +58,7 @@ function updateDataSourceBanner(source, reason, language) {
   }
 
   if (source === 'api') {
-    banner.hidden = true
-    banner.textContent = ''
+    hideDataSourceBanner()
     return
   }
 
@@ -67,18 +75,23 @@ function renderDirectory({ language, source, reason }) {
 }
 
 function renderProfileEditor() {
-  const banner = document.getElementById('data-source-banner')
-  if (banner) {
-    banner.hidden = true
-    banner.textContent = ''
-  }
-
+  hideDataSourceBanner()
   document.documentElement.lang = 'fr'
   document.title = 'Mon profil joueur | Jouer pour de bon'
-
   createRoot(document.getElementById('root')).render(
     <React.StrictMode>
       <EditProfile />
+    </React.StrictMode>,
+  )
+}
+
+function renderAdminPlayers() {
+  hideDataSourceBanner()
+  document.documentElement.lang = 'fr'
+  document.title = 'Registre privé des joueurs | Jouer pour de bon'
+  createRoot(document.getElementById('root')).render(
+    <React.StrictMode>
+      <AdminPlayers />
     </React.StrictMode>,
   )
 }
@@ -88,6 +101,11 @@ async function bootstrap() {
 
   if (isProfileEditorRoute()) {
     renderProfileEditor()
+    return
+  }
+
+  if (isAdminPlayersRoute()) {
+    renderAdminPlayers()
     return
   }
 
@@ -113,6 +131,11 @@ bootstrap().catch((error) => {
 
   if (isProfileEditorRoute()) {
     renderProfileEditor()
+    return
+  }
+
+  if (isAdminPlayersRoute()) {
+    renderAdminPlayers()
     return
   }
 
