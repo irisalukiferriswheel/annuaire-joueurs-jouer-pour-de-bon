@@ -50,10 +50,12 @@ export function resolveTrustedWixParentOrigin(referrer) {
   }
 }
 
-export const WIX_PARENT_ORIGIN =
-  typeof document !== 'undefined'
-    ? resolveTrustedWixParentOrigin(document.referrer)
-    : DEFAULT_WIX_PARENT_ORIGIN
+// Wix can place an external HTML component behind an internal iframe wrapper.
+// Browser postMessage requires targetOrigin to match that immediate parent.
+// We therefore target the actual parent window with "*"; the receiver still
+// validates window.parent / event.source and no Wix identity or API secrets are
+// ever sent through this bridge.
+export const WIX_PARENT_ORIGIN = '*'
 
 export function sanitizeProfileEditorSavePayload(value) {
   const form = value && typeof value === 'object' ? value : {}
