@@ -1,5 +1,16 @@
 export const WIX_PARENT_ORIGIN = 'https://www.jouerpourdebon.ca'
 
+const TRUSTED_WIX_HOSTS = new Set([
+  'editor.wix.com',
+  'manage.wix.com',
+])
+
+const TRUSTED_WIX_HOST_SUFFIXES = [
+  '.editor.wix.com',
+  '.studio.wix.com',
+  '.harmony.wix.com',
+]
+
 export const PROFILE_EDITOR_MESSAGE_TYPES = Object.freeze({
   ready: 'JPDB_PROFILE_EDITOR_READY',
   request: 'JPDB_PROFILE_EDITOR_REQUEST_DATA',
@@ -11,6 +22,32 @@ export const PROFILE_EDITOR_MESSAGE_TYPES = Object.freeze({
 
 function cleanText(value, maxLength) {
   return typeof value === 'string' ? value.trim().slice(0, maxLength) : ''
+}
+
+export function isTrustedWixParentOrigin(origin) {
+  if (origin === WIX_PARENT_ORIGIN || origin === 'https://jouerpourdebon.ca') {
+    return true
+  }
+
+  try {
+    const url = new URL(origin)
+
+    if (url.protocol !== 'https:') return false
+    if (TRUSTED_WIX_HOSTS.has(url.hostname)) return true
+
+    return TRUSTED_WIX_HOST_SUFFIXES.some((suffix) => url.hostname.endsWith(suffix))
+  } catch {
+    return false
+  }
+}
+
+export function resolveTrustedWixParentOrigin(referrer) {
+  try {
+    const origin = new URL(referrer).origin
+    return isTrustedWixParentOrigin(origin) ? origin : WIX_PARENT_ORIGIN
+  } catch {
+    return WIX_PARENT_ORIGIN
+  }
 }
 
 export function sanitizeProfileEditorSavePayload(value) {
@@ -33,10 +70,11 @@ export function sanitizeProfileEditorSavePayload(value) {
   }
 }
 
-export function isTrustedWixParentMessage(event, parentWindow) {
+export function isTrustedWixParentMessage(event, parentWindow, expectedOrigin = WIX_PARENT_ORIGIN) {
   return Boolean(
     event &&
-    event.origin === WIX_PARENT_ORIGIN &&
+    event.origin === expectedOrigin &&
+    isTrustedWixParentOrigin(event.origin) &&
     event.source === parentWindow &&
     event.data &&
     typeof event.data === 'object',
