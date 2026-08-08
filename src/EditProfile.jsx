@@ -147,7 +147,13 @@ export default function EditProfile() {
   }
 
   useEffect(() => {
-    let retryTimer
+    const retryTimers = []
+    let timeoutTimer
+
+    const clearHandshakeTimers = () => {
+      retryTimers.forEach((timer) => window.clearTimeout(timer))
+      if (timeoutTimer) window.clearTimeout(timeoutTimer)
+    }
 
     const handleMessage = (event) => {
       if (!isTrustedWixParentMessage(event, window.parent)) return
@@ -155,6 +161,7 @@ export default function EditProfile() {
       const message = event.data
 
       if (message.type === MESSAGE_TYPES.data) {
+        clearHandshakeTimers()
         applyData(message.payload)
         setError('')
       }
@@ -167,7 +174,9 @@ export default function EditProfile() {
       }
 
       if (message.type === MESSAGE_TYPES.error) {
+        clearHandshakeTimers()
         setSaving(false)
+        setLoading(false)
         setError(typeof message.message === 'string' ? message.message.slice(0, 300) : 'Une erreur est survenue.')
       }
     }
@@ -176,16 +185,24 @@ export default function EditProfile() {
 
     if (isEmbedded()) {
       postToWix({ type: MESSAGE_TYPES.ready })
-      retryTimer = window.setTimeout(() => {
-        postToWix({ type: MESSAGE_TYPES.request })
-      }, 4000)
+
+      ;[1500, 4000, 8000].forEach((delay) => {
+        retryTimers.push(window.setTimeout(() => {
+          postToWix({ type: MESSAGE_TYPES.request })
+        }, delay))
+      })
+
+      timeoutTimer = window.setTimeout(() => {
+        setLoading(false)
+        setError('La connexion avec Wix ne répond pas. Rechargez cette page ou essayez la page publiée en étant connecté à votre compte.')
+      }, 12000)
     } else {
       applyData(previewData)
     }
 
     return () => {
       window.removeEventListener('message', handleMessage)
-      if (retryTimer) window.clearTimeout(retryTimer)
+      clearHandshakeTimers()
     }
   }, [])
 
@@ -228,6 +245,16 @@ export default function EditProfile() {
       <main className="editor-shell editor-shell--loading">
         <LoaderCircle className="editor-spinner" size={34} />
         <strong>Chargement de votre profil joueur…</strong>
+      </main>
+    )
+  }
+
+  if (!member && error) {
+    return (
+      <main className="editor-shell editor-shell--loading">
+        <ShieldCheck size={34} />
+        <strong>Impossible de charger votre profil joueur.</strong>
+        <p className="editor-error">{error}</p>
       </main>
     )
   }
