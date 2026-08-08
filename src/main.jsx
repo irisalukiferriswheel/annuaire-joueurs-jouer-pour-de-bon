@@ -8,8 +8,22 @@ import { getInitialLanguage, localeForLanguage } from './i18n.js'
 import './styles.css'
 import './profileEditor.css'
 
+const PROFILE_EDITOR_HASH = '#/complete-profile'
+const LEGACY_PROFILE_EDITOR_HASH = '#/edit-profile'
+
 function isProfileEditorRoute() {
-  return window.location.hash === '#/edit-profile'
+  return window.location.hash === PROFILE_EDITOR_HASH
+}
+
+function clearLegacyProfileEditorRoute() {
+  if (window.location.hash !== LEGACY_PROFILE_EDITOR_HASH) return false
+
+  window.history.replaceState(
+    null,
+    '',
+    `${window.location.pathname}${window.location.search}`,
+  )
+  return true
 }
 
 function updateDataSourceBanner(source, reason, language) {
@@ -70,6 +84,8 @@ function renderProfileEditor() {
 }
 
 async function bootstrap() {
+  clearLegacyProfileEditorRoute()
+
   if (isProfileEditorRoute()) {
     renderProfileEditor()
     return
