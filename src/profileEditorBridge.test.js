@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import {
+  DEFAULT_WIX_PARENT_ORIGIN,
   WIX_PARENT_ORIGIN,
   isTrustedWixParentMessage,
   isTrustedWixParentOrigin,
@@ -10,7 +11,7 @@ import {
 } from './profileEditorBridge.js'
 
 test('accepts production and Wix editor preview origins only', () => {
-  assert.equal(isTrustedWixParentOrigin(WIX_PARENT_ORIGIN), true)
+  assert.equal(isTrustedWixParentOrigin(DEFAULT_WIX_PARENT_ORIGIN), true)
   assert.equal(isTrustedWixParentOrigin('https://jouerpourdebon.ca'), true)
   assert.equal(isTrustedWixParentOrigin('https://editor.wix.com'), true)
   assert.equal(isTrustedWixParentOrigin('https://simon-jpdb.editor.wix.com'), true)
@@ -19,6 +20,10 @@ test('accepts production and Wix editor preview origins only', () => {
   assert.equal(isTrustedWixParentOrigin('http://editor.wix.com'), false)
   assert.equal(isTrustedWixParentOrigin('https://evil.example'), false)
   assert.equal(isTrustedWixParentOrigin('https://editor.wix.com.evil.example'), false)
+})
+
+test('uses wildcard only as outbound browser target for Wix wrapper compatibility', () => {
+  assert.equal(WIX_PARENT_ORIGIN, '*')
 })
 
 test('resolves a trusted parent origin from the embedding referrer', () => {
@@ -32,7 +37,7 @@ test('resolves a trusted parent origin from the embedding referrer', () => {
   )
   assert.equal(
     resolveTrustedWixParentOrigin('https://evil.example/embed'),
-    WIX_PARENT_ORIGIN,
+    DEFAULT_WIX_PARENT_ORIGIN,
   )
 })
 
