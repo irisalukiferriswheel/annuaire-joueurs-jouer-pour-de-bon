@@ -50,11 +50,10 @@ export function resolveTrustedWixParentOrigin(referrer) {
   }
 }
 
-// Wix can place an external HTML component behind an internal iframe wrapper.
-// Browser postMessage requires targetOrigin to match that immediate parent.
-// We therefore target the actual parent window with "*"; the receiver still
-// validates window.parent / event.source and no Wix identity or API secrets are
-// ever sent through this bridge.
+// Wix may relay HTML-component messages through an internal sandbox frame.
+// During this diagnostic phase, target the immediate parent with "*" so the
+// relay can receive the handshake. No password, email, Wix member ID, or API
+// secret is ever sent through this browser bridge.
 export const WIX_PARENT_ORIGIN = '*'
 
 export function sanitizeProfileEditorSavePayload(value) {
@@ -77,11 +76,11 @@ export function sanitizeProfileEditorSavePayload(value) {
   }
 }
 
-export function isTrustedWixParentMessage(event, parentWindow) {
+export function isTrustedWixParentMessage(event) {
   return Boolean(
     event &&
-    event.source === parentWindow &&
     event.data &&
-    typeof event.data === 'object',
+    typeof event.data === 'object' &&
+    Object.values(PROFILE_EDITOR_MESSAGE_TYPES).includes(event.data.type),
   )
 }
