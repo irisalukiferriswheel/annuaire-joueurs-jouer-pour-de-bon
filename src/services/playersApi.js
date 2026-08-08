@@ -65,9 +65,6 @@ export function normalizePlayer(player, locale = 'en') {
   const name = player.alias || player.name || player.displayName || player.firstName || 'Player'
   const games = (player.games || []).map((game) => normalizeGame(game, locale)).filter(Boolean)
 
-  // For compact live profiles, missing rich fields remain genuinely missing.
-  // Do not create a fake cause, availability status, province, or zero-valued
-  // record just to satisfy components that were originally built for demos.
   if (!isRich) {
     return {
       id: String(player.id),
@@ -137,39 +134,64 @@ export function buildFilterOptions(players) {
   }
 }
 
-export async function loadPlayers({ locale = 'en-CA', signal } = {}) {
+export async function searchPlayers({
+  locale = 'en-CA',
+  query = '',
+  city = '',
+  game = '',
+  page = 1,
+  limit = 24,
+  signal,
+} = {}) {
   if (!API_BASE_URL) {
-    return { players: demoPlayers, source: 'demo', reason: 'api-not-configured' }
+    return {
+      players: demoPlayers,
+      pagination: { page: 1, limit: demoPlayers.length, total: demoPlayers.length, totalPages: 1, hasNext: false, hasPrevious: false },
+      source: 'demo',
+      reason: 'api-not-configured',
+    }
   }
 
+  const params = new URLSearchParams({
+    page: String(Math.max(1, Number(page) || 1)),
+    limit: String(Math.max(1, Math.min(100, Number(limit) || 24))),
+  })
+  if (query.trim()) params.set('q', query.trim())
+  if (city.trim()) params.set('city', city.trim())
+  if (game.trim()) params.set('game', game.trim())
+
+  const response = await fetch(`${API_BASE_URL}/v1/public/players/search?${params}`, {
+    method: 'GET',
+    headers: { Accept: 'application/json' },
+    signal,
+  })
+
+  if (!response.ok) {
+    throw new Error(`Player API returned ${response.status}`)
+  }
+
+  const payload = await response.json()
+  const rawPlayers = Array.isArray(payload?.data) ? payload.data : []
+
+  if (!hasBasicDirectoryContract(rawPlayers)) {
+    throw new Error('Player API returned an invalid public-player payload')
+  }
+
+  const richContract = hasRichDirectoryContract(rawPlayers)
+  return {
+    players: rawPlayers.map((player) => normalizePlayer(player, locale)),
+    pagination: payload?.pagination || null,
+    source: 'api',
+    reason: richContract ? null : 'api-basic-profile-contract',
+  }
+}
+
+export async function loadPlayers({ locale = 'en-CA', signal } = {}) {
   try {
-    const response = await fetch(`${API_BASE_URL}/v1/public/players?locale=${encodeURIComponent(locale)}`, {
-      method: 'GET',
-      headers: { Accept: 'application/json' },
-      signal,
-    })
-
-    if (!response.ok) {
-      throw new Error(`Player API returned ${response.status}`)
-    }
-
-    const payload = await response.json()
-    const rawPlayers = Array.isArray(payload) ? payload : payload?.data
-
-    if (!hasBasicDirectoryContract(rawPlayers)) {
-      throw new Error('Player API returned an invalid public-player payload')
-    }
-
-    const richContract = hasRichDirectoryContract(rawPlayers)
-
-    return {
-      players: rawPlayers.map((player) => normalizePlayer(player, locale)),
-      source: 'api',
-      reason: richContract ? null : 'api-basic-profile-contract',
-    }
+    return await searchPlayers({ locale, page: 1, limit: 100, signal })
   } catch (error) {
     if (error?.name === 'AbortError') throw error
     console.warn('Falling back to demo player data:', error)
-    return { players: demoPlayers, source: 'demo', reason: 'api-unavailable' }
+    return { players: demoPlayers, pagination: null, source: 'demo', reason: 'api-unavailable' }
   }
 }
