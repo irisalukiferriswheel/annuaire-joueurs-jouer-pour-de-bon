@@ -1,0 +1,62 @@
+name: One-time live player editor browser verification
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify deployed edit-profile route with headless Chrome
+        shell: bash
+        run: |
+          set -euo pipefail
+          page='https://irisalukiferriswheel.github.io/annuaire-joueurs-jouer-pour-de-bon/#/edit-profile'
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$browser"
+
+          "$browser" --headless=new --disable-gpu --no-sandbox \
+            --virtual-time-budget=8000 --dump-dom "$page" > /tmp/editor.html
+
+          grep -F 'Créer mon profil joueur' /tmp/editor.html >/dev/null
+          grep -F 'Afficher mon profil dans l’annuaire public' /tmp/editor.html >/dev/null
+          grep -F 'Camille' /tmp/editor.html >/dev/null
+
+          if grep -F 'class="player-card"' /tmp/editor.html >/dev/null; then
+            echo 'Editor route unexpectedly rendered the public player directory.' >&2
+            exit 1
+          fi
+
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+
+          class CheckboxParser(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.checkboxes = []
+              def handle_starttag(self, tag, attrs):
+                  if tag != 'input':
+                      return
+                  values = dict(attrs)
+                  if values.get('type') == 'checkbox':
+                      self.checkboxes.append(values)
+
+          parser = CheckboxParser()
+          with open('/tmp/editor.html', encoding='utf-8') as handle:
+              parser.feed(handle.read())
+
+          if len(parser.checkboxes) < 2:
+              raise SystemExit(f'Expected at least 2 editor checkboxes, found {len(parser.checkboxes)}')
+
+          if any('checked' in checkbox for checkbox in parser.checkboxes):
+              raise SystemExit('A first-time editor checkbox is unexpectedly checked by default')
+
+          print(f'EDITOR_CHECKBOX_COUNT={len(parser.checkboxes)}')
+          print('All first-time editor checkboxes are unchecked by default.')
+          PY
+
+          echo 'Live standalone player editor rendered successfully with privacy-safe defaults.'
