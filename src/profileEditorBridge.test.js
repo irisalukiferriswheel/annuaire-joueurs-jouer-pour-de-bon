@@ -57,6 +57,7 @@ test('sanitizes and bounds editor save payloads before Wix receives them', () =>
   const payload = sanitizeProfileEditorSavePayload({
     alias: `  ${'A'.repeat(120)}  `,
     city: `  ${'C'.repeat(180)}  `,
+    birthDate: ' 1976-06-23 ',
     games: ['chess', ' chess ', '', 'basketball', ...Array.from({ length: 60 }, (_, index) => `game-${index}`)],
     newGame: `  ${'N'.repeat(170)}  `,
     wantsToOrganize: 1,
@@ -65,6 +66,7 @@ test('sanitizes and bounds editor save payloads before Wix receives them', () =>
 
   assert.equal(payload.alias.length, 100)
   assert.equal(payload.city.length, 150)
+  assert.equal(payload.birthDate, '1976-06-23')
   assert.equal(payload.newGame.length, 150)
   assert.equal(payload.games[0], 'chess')
   assert.equal(payload.games[1], 'basketball')
@@ -77,6 +79,7 @@ test('defaults malformed editor payload values safely', () => {
   assert.deepEqual(sanitizeProfileEditorSavePayload(null), {
     alias: '',
     city: '',
+    birthDate: '',
     games: [],
     newGame: '',
     wantsToOrganize: false,
