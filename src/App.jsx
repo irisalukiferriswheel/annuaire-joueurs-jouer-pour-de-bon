@@ -347,7 +347,7 @@ function Profile({ player, onBack, language }) {
         )}
       </section>
 
-      <section className={`profile-layout ${rich ? '' : 'profile-layout--single'}`}>
+      <section className="profile-layout" style={rich ? undefined : { gridTemplateColumns: 'minmax(0, 1fr)' }}>
         <div className="profile-main">
           <section className="panel">
             <h2>{c.about} {player.name}</h2>
@@ -429,8 +429,7 @@ function Profile({ player, onBack, language }) {
                   <Star size={17} /> {c.leaveReview}
                 </button>
                 <button className="button button--danger" title={c.reportButtonTitle}>
-                  <Flag size={17} /> {c.reportConcern}
-                </button>
+                  <Flag size={17} /> {c.reportConcern}</button>
               </div>
               <p className="safety-note"><ShieldCheck size={16} /> {c.safetyNote}</p>
             </section>
