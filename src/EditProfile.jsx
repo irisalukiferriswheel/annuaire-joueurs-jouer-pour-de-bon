@@ -20,7 +20,7 @@ import {
 } from './profileEditorBridge.js'
 
 const previewData = {
-  member: { firstName: 'Camille', nickname: 'Camille' },
+  member: { firstName: 'Camille', lastName: 'Martin', nickname: 'Camille' },
   profile: null,
   games: [
     { slug: 'basketball', nameFr: 'Basketball', nameEn: 'Basketball' },
@@ -56,7 +56,6 @@ function Toggle({ checked, onChange, title, description }) {
 
 function GamePicker({ games, selected, onChange }) {
   const selectedSet = useMemo(() => new Set(selected), [selected])
-
   const toggle = (slug) => {
     onChange(selectedSet.has(slug)
       ? selected.filter((value) => value !== slug)
@@ -87,7 +86,6 @@ function GamePicker({ games, selected, onChange }) {
 
 function normalizeIncomingGames(value) {
   if (!Array.isArray(value)) return []
-
   return value
     .filter((game) => game && typeof game === 'object' && typeof game.slug === 'string' && game.slug.trim())
     .slice(0, 250)
@@ -108,6 +106,8 @@ export default function EditProfile() {
   const [games, setGames] = useState([])
   const [profileExists, setProfileExists] = useState(false)
   const [form, setForm] = useState({
+    firstName: '',
+    lastName: '',
     alias: '',
     city: '',
     birthDate: '',
@@ -130,14 +130,15 @@ export default function EditProfile() {
 
     setMember({
       firstName: typeof incomingMember.firstName === 'string' ? incomingMember.firstName.trim().slice(0, 100) : '',
+      lastName: typeof incomingMember.lastName === 'string' ? incomingMember.lastName.trim().slice(0, 100) : '',
       nickname: typeof incomingMember.nickname === 'string' ? incomingMember.nickname.trim().slice(0, 100) : '',
     })
     setGames(incomingGames)
     setProfileExists(Boolean(profile))
     setForm({
-      alias: typeof profile?.alias === 'string'
-        ? profile.alias.trim().slice(0, 100)
-        : (incomingMember.nickname || incomingMember.firstName || '').trim().slice(0, 100),
+      firstName: typeof profile?.firstName === 'string' ? profile.firstName.trim().slice(0, 100) : (incomingMember.firstName || '').trim().slice(0, 100),
+      lastName: typeof profile?.lastName === 'string' ? profile.lastName.trim().slice(0, 100) : (incomingMember.lastName || '').trim().slice(0, 100),
+      alias: typeof profile?.alias === 'string' ? profile.alias.trim().slice(0, 100) : (incomingMember.nickname || '').trim().slice(0, 100),
       city: typeof profile?.city === 'string' ? profile.city.trim().slice(0, 150) : '',
       birthDate: typeof profile?.birthDate === 'string' ? profile.birthDate.trim().slice(0, 10) : '',
       games: Array.from(new Set(savedGameSlugs)).slice(0, 50),
@@ -151,30 +152,24 @@ export default function EditProfile() {
   useEffect(() => {
     const retryTimers = []
     let timeoutTimer
-
     const clearHandshakeTimers = () => {
       retryTimers.forEach((timer) => window.clearTimeout(timer))
       if (timeoutTimer) window.clearTimeout(timeoutTimer)
     }
-
     const handleMessage = (event) => {
       if (!isTrustedWixParentMessage(event, window.parent)) return
-
       const message = event.data
-
       if (message.type === MESSAGE_TYPES.data) {
         clearHandshakeTimers()
         applyData(message.payload)
         setError('')
       }
-
       if (message.type === MESSAGE_TYPES.saved) {
         setSaving(false)
         setSaved(true)
         setProfileExists(true)
         setForm((current) => ({ ...current, newGame: '' }))
       }
-
       if (message.type === MESSAGE_TYPES.error) {
         clearHandshakeTimers()
         setSaving(false)
@@ -184,16 +179,11 @@ export default function EditProfile() {
     }
 
     window.addEventListener('message', handleMessage)
-
     if (isEmbedded()) {
       postToWix({ type: MESSAGE_TYPES.ready })
-
       ;[1500, 4000, 8000].forEach((delay) => {
-        retryTimers.push(window.setTimeout(() => {
-          postToWix({ type: MESSAGE_TYPES.request })
-        }, delay))
+        retryTimers.push(window.setTimeout(() => postToWix({ type: MESSAGE_TYPES.request }), delay))
       })
-
       timeoutTimer = window.setTimeout(() => {
         setLoading(false)
         setError('La connexion avec Wix ne répond pas. Rechargez cette page ou essayez la page publiée en étant connecté à votre compte.')
@@ -217,29 +207,20 @@ export default function EditProfile() {
   const submit = (event) => {
     event.preventDefault()
     const payload = sanitizeProfileEditorSavePayload(form)
-
-    if (!payload.alias) {
-      setError('Entrez un nom public / alias.')
-      return
-    }
-    if (!payload.city) {
-      setError('Entrez votre ville.')
-      return
-    }
-    if (payload.games.length === 0) {
-      setError('Choisissez au moins un jeu.')
-      return
-    }
+    if (!payload.firstName) return setError('Entrez votre prénom.')
+    if (!payload.lastName) return setError('Entrez votre nom de famille.')
+    if (!payload.alias) return setError('Entrez un nom public / alias.')
+    if (!payload.city) return setError('Entrez votre ville.')
+    if (!payload.birthDate) return setError('Entrez votre date de naissance.')
+    if (payload.games.length === 0) return setError('Choisissez au moins un jeu.')
 
     setSaving(true)
     setSaved(false)
     setError('')
-
     if (isEmbedded()) {
       postToWix({ type: MESSAGE_TYPES.save, payload })
       return
     }
-
     window.setTimeout(() => {
       setSaving(false)
       setSaved(true)
@@ -249,22 +230,11 @@ export default function EditProfile() {
   }
 
   if (loading) {
-    return (
-      <main className="editor-shell editor-shell--loading">
-        <LoaderCircle className="editor-spinner" size={34} />
-        <strong>Chargement de votre profil joueur…</strong>
-      </main>
-    )
+    return <main className="editor-shell editor-shell--loading"><LoaderCircle className="editor-spinner" size={34} /><strong>Chargement de votre profil joueur…</strong></main>
   }
 
   if (!member && error) {
-    return (
-      <main className="editor-shell editor-shell--loading">
-        <ShieldCheck size={34} />
-        <strong>Impossible de charger votre profil joueur.</strong>
-        <p className="editor-error">{error}</p>
-      </main>
-    )
+    return <main className="editor-shell editor-shell--loading"><ShieldCheck size={34} /><strong>Impossible de charger votre profil joueur.</strong><p className="editor-error">{error}</p></main>
   }
 
   return (
@@ -274,10 +244,7 @@ export default function EditProfile() {
         <div>
           <span className="section-kicker"><Sparkles size={15} /> Espace joueur</span>
           <h1>{profileExists ? 'Modifier mon profil joueur' : 'Compléter mon profil joueur'}</h1>
-          <p>
-            {member?.firstName ? `Bonjour ${member.firstName}. ` : ''}
-            Complétez les informations nécessaires pour pouvoir vous inscrire aux parties.
-          </p>
+          <p>{member?.firstName ? `Bonjour ${member.firstName}. ` : ''}Complétez les informations nécessaires pour pouvoir participer aux parties.</p>
         </div>
       </section>
 
@@ -286,22 +253,37 @@ export default function EditProfile() {
           <section className="editor-card">
             <div className="editor-section-title">
               <div className="editor-step">1</div>
-              <div><h2>Votre identité de joueur</h2><p>Ces informations servent à votre profil et à l’admissibilité aux parties.</p></div>
+              <div><h2>Votre identité</h2><p>Votre vrai nom et votre âge restent privés. Votre alias est le nom montré aux autres joueurs.</p></div>
             </div>
 
             <div className="editor-field-grid">
               <label className="editor-field">
-                <span>Nom public / alias <em>requis</em></span>
-                <input value={form.alias} maxLength={100} required onChange={(event) => update('alias', event.target.value)} placeholder="Ex. Camille" />
+                <span>Prénom <em>requis · privé</em></span>
+                <input value={form.firstName} maxLength={100} required onChange={(event) => update('firstName', event.target.value)} placeholder="Ex. Camille" />
+                <small>Réservé aux futurs outils administratifs autorisés.</small>
               </label>
+              <label className="editor-field">
+                <span>Nom de famille <em>requis · privé</em></span>
+                <input value={form.lastName} maxLength={100} required onChange={(event) => update('lastName', event.target.value)} placeholder="Ex. Martin" />
+                <small>Il n’apparaît jamais dans l’annuaire public.</small>
+              </label>
+            </div>
+
+            <label className="editor-field editor-field--wide">
+              <span>Nom public / alias <em>requis · public</em></span>
+              <input value={form.alias} maxLength={100} required onChange={(event) => update('alias', event.target.value)} placeholder="Ex. CamJoue" />
+              <small>Choisissez un alias qui protège votre identité. C’est ce nom que les autres joueurs verront.</small>
+            </label>
+
+            <div className="editor-field-grid">
               <label className="editor-field">
                 <span><MapPin size={14} /> Ville <em>requise</em></span>
                 <input value={form.city} maxLength={150} required onChange={(event) => update('city', event.target.value)} placeholder="Ex. Sherbrooke" />
               </label>
               <label className="editor-field">
-                <span>Date de naissance <em>privée</em></span>
-                <input type="date" value={form.birthDate} max={new Date().toISOString().slice(0, 10)} onChange={(event) => update('birthDate', event.target.value)} />
-                <small>Demandée seulement pour vérifier l’âge lorsque l’organisateur impose une limite d’âge. Elle n’apparaît jamais dans l’annuaire public.</small>
+                <span>Date de naissance <em>requise · privée</em></span>
+                <input type="date" value={form.birthDate} required max={new Date().toISOString().slice(0, 10)} onChange={(event) => update('birthDate', event.target.value)} />
+                <small>Elle sert aux vérifications d’âge et aux démarches de consentement parental. Elle n’est jamais publiée.</small>
               </label>
             </div>
           </section>
@@ -311,9 +293,7 @@ export default function EditProfile() {
               <div className="editor-step">2</div>
               <div><h2>À quoi aimez-vous jouer?</h2><p>Choisissez au moins un jeu. Vous pouvez en sélectionner plusieurs.</p></div>
             </div>
-
             <GamePicker games={games} selected={form.games} onChange={(value) => update('games', value)} />
-
             <label className="editor-field editor-field--wide">
               <span>Votre jeu n’est pas dans la liste?</span>
               <input value={form.newGame} maxLength={150} onChange={(event) => update('newGame', event.target.value)} placeholder="Proposer un autre jeu" />
@@ -322,24 +302,10 @@ export default function EditProfile() {
           </section>
 
           <section className="editor-card">
-            <div className="editor-section-title">
-              <div className="editor-step">3</div>
-              <div><h2>Comment voulez-vous participer?</h2><p>Vous pourrez modifier ces choix plus tard.</p></div>
-            </div>
-
+            <div className="editor-section-title"><div className="editor-step">3</div><div><h2>Comment voulez-vous participer?</h2><p>Vous pourrez modifier ces choix plus tard.</p></div></div>
             <div className="editor-toggle-list">
-              <Toggle
-                checked={form.wantsToOrganize}
-                onChange={(value) => update('wantsToOrganize', value)}
-                title="Je veux aussi organiser des parties"
-                description="Cette préférence peut servir à demander plus tard l’accès aux outils d’organisation."
-              />
-              <Toggle
-                checked={form.isPublic}
-                onChange={(value) => update('isPublic', value)}
-                title="Afficher mon profil dans l’annuaire public"
-                description="Cette option est désactivée par défaut. Votre date de naissance et vos informations de connexion ne sont jamais publiées."
-              />
+              <Toggle checked={form.wantsToOrganize} onChange={(value) => update('wantsToOrganize', value)} title="Je veux aussi organiser des parties" description="Cette préférence peut servir à demander plus tard l’accès aux outils d’organisation." />
+              <Toggle checked={form.isPublic} onChange={(value) => update('isPublic', value)} title="Afficher mon profil dans l’annuaire public" description="Important si vous voulez que d’autres joueurs puissent vous trouver et vous contacter pour jouer. Votre prénom, nom, date de naissance et catégorie d’âge restent privés." />
             </div>
           </section>
         </div>
@@ -358,20 +324,19 @@ export default function EditProfile() {
                   })
                 : <span>Vos jeux apparaîtront ici</span>}
             </div>
-            <div className="editor-trust"><BadgeCheck size={17} /><span>Alias, ville et au moins un jeu sont nécessaires pour participer aux parties.</span></div>
+            <div className="editor-trust"><BadgeCheck size={17} /><span>Votre vrai nom et votre catégorie d’âge ne sont pas affichés ici.</span></div>
           </section>
-
           <section className="editor-privacy-note">
             <ShieldCheck size={20} />
-            <div><strong>Vos données privées restent privées.</strong><p>La date de naissance sert uniquement aux vérifications d’âge. Elle n’est pas exposée dans l’annuaire.</p></div>
+            <div><strong>Votre identité réelle reste privée.</strong><p>Prénom, nom de famille, date de naissance et catégorie d’âge sont réservés aux besoins administratifs, de sécurité et de consentement.</p></div>
           </section>
         </aside>
 
         <div className="editor-submit-bar">
           <div className="editor-submit-status" role="status" aria-live="polite">
             {error && <span className="editor-error">{error}</span>}
-            {saved && <span className="editor-success"><Check size={16} /> Profil enregistré. Vous pouvez maintenant rejoindre les parties admissibles.</span>}
-            {!error && !saved && <span><HeartHandshake size={16} /> Les parties « tous âges » ne nécessitent pas de date de naissance.</span>}
+            {saved && <span className="editor-success"><Check size={16} /> Profil enregistré.</span>}
+            {!error && !saved && <span><HeartHandshake size={16} /> Votre alias protège votre identité publique; vos données d’identité restent privées.</span>}
           </div>
           <button className="button button--primary editor-save" type="submit" disabled={saving}>
             {saving ? <LoaderCircle className="editor-spinner" size={18} /> : <Save size={18} />}
@@ -379,7 +344,6 @@ export default function EditProfile() {
           </button>
         </div>
       </form>
-
       <p className="editor-footer-note"><Users size={15} /> Jouer pour de bon · Playing for Good</p>
     </main>
   )
