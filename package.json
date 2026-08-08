@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "test": "node --test src/publicUrl.test.js src/playerCoverage.test.js src/services/playersApi.test.js",
+    "test": "node --test src/publicUrl.test.js src/playerCoverage.test.js src/services/playersApi.test.js src/profileEditorBridge.test.js",
     "build": "vite build",
     "preview": "vite preview"
   },
