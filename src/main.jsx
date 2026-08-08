@@ -1,10 +1,16 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
+import EditProfile from './EditProfile.jsx'
 import { filterOptions, players } from './data/players.js'
 import { buildFilterOptions, loadPlayers } from './services/playersApi.js'
 import { getInitialLanguage, localeForLanguage } from './i18n.js'
 import './styles.css'
+import './profileEditor.css'
+
+function isProfileEditorRoute() {
+  return window.location.hash === '#/edit-profile'
+}
 
 function updateDataSourceBanner(source, reason, language) {
   const banner = document.getElementById('data-source-banner')
@@ -38,7 +44,7 @@ function updateDataSourceBanner(source, reason, language) {
   banner.hidden = false
 }
 
-function renderApp({ language, source, reason }) {
+function renderDirectory({ language, source, reason }) {
   createRoot(document.getElementById('root')).render(
     <React.StrictMode>
       <App language={language} dataSource={source} dataReason={reason} />
@@ -46,7 +52,29 @@ function renderApp({ language, source, reason }) {
   )
 }
 
+function renderProfileEditor() {
+  const banner = document.getElementById('data-source-banner')
+  if (banner) {
+    banner.hidden = true
+    banner.textContent = ''
+  }
+
+  document.documentElement.lang = 'fr'
+  document.title = 'Mon profil joueur | Jouer pour de bon'
+
+  createRoot(document.getElementById('root')).render(
+    <React.StrictMode>
+      <EditProfile />
+    </React.StrictMode>,
+  )
+}
+
 async function bootstrap() {
+  if (isProfileEditorRoute()) {
+    renderProfileEditor()
+    return
+  }
+
   const language = getInitialLanguage()
   document.documentElement.lang = language
 
@@ -61,16 +89,22 @@ async function bootstrap() {
   window.__JPDB_DATA_REASON__ = result.reason
   window.__JPDB_LANGUAGE__ = language
   updateDataSourceBanner(result.source, result.reason, language)
-  renderApp({ language, source: result.source, reason: result.reason })
+  renderDirectory({ language, source: result.source, reason: result.reason })
 }
 
 bootstrap().catch((error) => {
   console.error('Player directory bootstrap failed:', error)
+
+  if (isProfileEditorRoute()) {
+    renderProfileEditor()
+    return
+  }
+
   const language = getInitialLanguage()
   document.documentElement.lang = language
   window.__JPDB_DATA_SOURCE__ = 'demo'
   window.__JPDB_DATA_REASON__ = 'bootstrap-error'
   window.__JPDB_LANGUAGE__ = language
   updateDataSourceBanner('demo', 'bootstrap-error', language)
-  renderApp({ language, source: 'demo', reason: 'bootstrap-error' })
+  renderDirectory({ language, source: 'demo', reason: 'bootstrap-error' })
 })
