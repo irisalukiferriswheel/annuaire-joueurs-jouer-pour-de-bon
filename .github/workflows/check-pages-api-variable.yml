@@ -1,0 +1,26 @@
+name: One-time Pages API variable check
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+    steps:
+      - name: Report variable state without printing its value
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${API_BASE_URL:-}" ]; then
+            echo 'PAGES_API_VARIABLE_STATE=unset'
+          elif [ "$API_BASE_URL" = 'https://jouer-pour-de-bon-api.onrender.com' ]; then
+            echo 'PAGES_API_VARIABLE_STATE=expected-render-api'
+          else
+            echo 'PAGES_API_VARIABLE_STATE=configured-other-origin'
+          fi
