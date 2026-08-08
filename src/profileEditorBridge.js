@@ -75,11 +75,9 @@ export function sanitizeProfileEditorSavePayload(value) {
   }
 }
 
-export function isTrustedWixParentMessage(event, parentWindow, expectedOrigin = WIX_PARENT_ORIGIN) {
+export function isTrustedWixParentMessage(event, parentWindow) {
   return Boolean(
     event &&
-    event.origin === expectedOrigin &&
-    isTrustedWixParentOrigin(event.origin) &&
     event.source === parentWindow &&
     event.data &&
     typeof event.data === 'object',
