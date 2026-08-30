@@ -146,14 +146,17 @@ export function getInitialLanguage() {
   const requested = params.get('lang')
   if (requested === 'fr' || requested === 'en') return requested
 
-  const saved = window.localStorage.getItem('jpdb-player-directory-language')
+  const saved = window.localStorage.getItem('jpdb-language')
   if (saved === 'fr' || saved === 'en') return saved
 
   return navigator.language?.toLowerCase().startsWith('fr') ? 'fr' : 'en'
 }
 
 export function setLanguage(language) {
-  window.localStorage.setItem('jpdb-player-directory-language', language)
+  window.localStorage.setItem('jpdb-language', language)
+  if (window.parent !== window) {
+    window.parent.postMessage({ type: 'JPDB_LANGUAGE_CHANGED', language }, '*')
+  }
   const url = new URL(window.location.href)
   url.searchParams.set('lang', language)
   window.location.assign(url.toString())
