@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 import EditProfile from './EditProfile.jsx'
 import AdminPlayers from './AdminPlayers.jsx'
+import AdminCauses from './AdminCauses.jsx'
 import { filterOptions, players } from './data/players.js'
 import { buildFilterOptions, loadPlayers } from './services/playersApi.js'
 import { getInitialLanguage, localeForLanguage } from './i18n.js'
@@ -11,6 +12,7 @@ import './profileEditor.css'
 
 const PROFILE_EDITOR_HASH = '#/complete-profile'
 const ADMIN_PLAYERS_HASH = '#/admin/players'
+const ADMIN_CAUSES_HASH = '#/admin/causes'
 const LEGACY_PROFILE_EDITOR_HASH = '#/edit-profile'
 
 function isProfileEditorRoute() {
@@ -19,6 +21,10 @@ function isProfileEditorRoute() {
 
 function isAdminPlayersRoute() {
   return window.location.hash === ADMIN_PLAYERS_HASH
+}
+
+function isAdminCausesRoute() {
+  return window.location.hash === ADMIN_CAUSES_HASH
 }
 
 function clearLegacyProfileEditorRoute() {
@@ -96,6 +102,20 @@ function renderAdminPlayers() {
   )
 }
 
+function renderAdminCauses() {
+  hideDataSourceBanner()
+  const language = getInitialLanguage()
+  document.documentElement.lang = language
+  document.title = language === 'fr'
+    ? 'Approbation des causes | Jouer pour de bon'
+    : 'Cause approvals | Playing for Good'
+  createRoot(document.getElementById('root')).render(
+    <React.StrictMode>
+      <AdminCauses initialLanguage={language} />
+    </React.StrictMode>,
+  )
+}
+
 async function bootstrap() {
   clearLegacyProfileEditorRoute()
 
@@ -106,6 +126,12 @@ async function bootstrap() {
 
   if (isAdminPlayersRoute()) {
     renderAdminPlayers()
+    return
+  }
+
+
+  if (isAdminCausesRoute()) {
+    renderAdminCauses()
     return
   }
 
@@ -136,6 +162,11 @@ bootstrap().catch((error) => {
 
   if (isAdminPlayersRoute()) {
     renderAdminPlayers()
+    return
+  }
+
+  if (isAdminCausesRoute()) {
+    renderAdminCauses()
     return
   }
 
