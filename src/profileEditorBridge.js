@@ -13,6 +13,23 @@ function cleanText(value, maxLength) {
   return typeof value === 'string' ? value.trim().slice(0, maxLength) : ''
 }
 
+const SOCIAL_PLATFORMS = new Set(['website', 'discord', 'facebook', 'instagram', 'linkedin', 'tiktok', 'twitch', 'x', 'youtube'])
+
+function sanitizeSocials(value) {
+  if (!value || typeof value !== 'object') return []
+  const entries = Array.isArray(value) ? value : Object.entries(value).map(([platform, url]) => ({ platform, url }))
+  const unique = new Map()
+  for (const entry of entries) {
+    const platform = cleanText(entry?.platform, 30).toLowerCase()
+    const url = cleanText(entry?.url, 500)
+    if (!SOCIAL_PLATFORMS.has(platform) || !url) continue
+    try {
+      if (new URL(url).protocol === 'https:') unique.set(platform, { platform, url })
+    } catch { /* Invalid links are omitted before they leave the embed. */ }
+  }
+  return [...unique.values()]
+}
+
 export function isTrustedWixParentOrigin(origin) {
   if (origin === DEFAULT_WIX_PARENT_ORIGIN || origin === 'https://jouerpourdebon.ca') return true
   try {
@@ -49,9 +66,11 @@ export function sanitizeProfileEditorSavePayload(value) {
     legalGuardianName: cleanText(form.legalGuardianName, 150), legalGuardianPhone: cleanText(form.legalGuardianPhone, 50),
     games, newGame: cleanText(form.newGame, 150), wantsToOrganize: Boolean(form.wantsToOrganize),
     interestedInVolunteering: Boolean(form.interestedInVolunteering), isPublic: Boolean(form.isPublic),
+    socials: sanitizeSocials(form.socials),
   }
 }
 
 export function isTrustedWixParentMessage(event) {
   return Boolean(event && event.data && typeof event.data === 'object' && Object.values(PROFILE_EDITOR_MESSAGE_TYPES).includes(event.data.type))
 }
+

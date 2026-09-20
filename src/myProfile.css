@@ -1,0 +1,22 @@
+.my-profile-toolbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:22px; }
+.my-profile-toolbar > div { display:flex; gap:14px; }
+.my-profile-identity { display:flex; align-items:center; gap:20px; margin-bottom:20px; }
+.my-profile-identity .editor-avatar { margin:0; flex-shrink:0; }
+.my-profile-name { flex:1; min-width:0; overflow-wrap:anywhere; }
+.my-profile-name h2 { margin:0 0 8px; }
+.my-profile-name p { display:flex; align-items:center; gap:5px; margin:0 0 10px; }
+.my-profile-visibility { font-size:.8rem; color:var(--pfg-green-700); background:#eef8f1; padding:6px 10px; border-radius:20px; display:inline-block; }
+.my-profile-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; }
+.my-profile-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin:0 0 18px; }
+.my-profile-stats > div { background:#f0f7f2; border:1px solid #d8eadc; border-radius:14px; padding:17px; color:var(--pfg-green-700); display:grid; gap:5px; }
+.my-profile-stats strong { font-size:1.35rem; color:var(--pfg-blue-900); overflow-wrap:anywhere; }
+.my-profile-stats span { font-size:.86rem; color:var(--pfg-muted); }
+.my-profile-causes { list-style:none; padding:0; margin:0; }
+.my-profile-causes li { display:flex; justify-content:space-between; gap:16px; padding:11px 0; border-bottom:1px solid var(--pfg-line); }
+.my-profile-grid h2 { display:flex; gap:10px; align-items:center; font-size:1.1rem; margin:0 0 18px; color:var(--pfg-blue-900); }
+.my-profile-grid p,.my-profile-welcome { line-height:1.65; color:var(--pfg-muted); }
+.my-profile-grid dl { margin:0; }
+.my-profile-grid dl > div { display:flex; justify-content:space-between; gap:16px; padding:12px 0; border-bottom:1px solid var(--pfg-line); }
+.my-profile-grid dd { margin:0; color:var(--pfg-muted); text-align:right; }
+@media(max-width:640px) { .my-profile-grid,.my-profile-stats { grid-template-columns:1fr; } .my-profile-identity { flex-wrap:wrap; } .my-profile-identity > button { width:100%; justify-content:center; } }
+

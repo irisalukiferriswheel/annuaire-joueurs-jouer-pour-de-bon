@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 import EditProfile from './EditProfile.jsx'
 import AdminPlayers from './AdminPlayers.jsx'
+import MyProfile from './MyProfile.jsx'
 import { filterOptions, players } from './data/players.js'
 import { buildFilterOptions, loadPlayers } from './services/playersApi.js'
 import { getInitialLanguage, localeForLanguage } from './i18n.js'
@@ -97,6 +98,11 @@ function renderAdminPlayers() {
 }
 
 async function bootstrap() {
+  if (window.location.hash === '#/my-profile') {
+    hideDataSourceBanner()
+    createRoot(document.getElementById('root')).render(<React.StrictMode><MyProfile /></React.StrictMode>)
+    return
+  }
   clearLegacyProfileEditorRoute()
 
   if (isProfileEditorRoute()) {
@@ -147,3 +153,4 @@ bootstrap().catch((error) => {
   updateDataSourceBanner('demo', 'bootstrap-error', language)
   renderDirectory({ language, source: 'demo', reason: 'bootstrap-error' })
 })
+
