@@ -77,6 +77,7 @@ test('sanitizes and bounds editor save payloads before Wix receives them', () =>
     wantsToOrganize: 1,
     interestedInVolunteering: 1,
     isPublic: 0,
+    socials: { instagram: ' https://instagram.com/player ', website: 'http://not-secure.example', random: 'https://example.com' },
   })
 
   assert.equal(payload.firstName.length, 100)
@@ -95,6 +96,7 @@ test('sanitizes and bounds editor save payloads before Wix receives them', () =>
   assert.equal(payload.wantsToOrganize, true)
   assert.equal(payload.interestedInVolunteering, true)
   assert.equal(payload.isPublic, false)
+  assert.deepEqual(payload.socials, [{ platform: 'instagram', url: 'https://instagram.com/player' }])
 })
 
 test('defaults malformed editor payload values safely', () => {
@@ -121,5 +123,7 @@ test('defaults malformed editor payload values safely', () => {
     wantsToOrganize: false,
     interestedInVolunteering: false,
     isPublic: false,
+    socials: [],
   })
 })
+

@@ -63,10 +63,15 @@ function normalizeIncomingGames(value) {
 const EMPTY_FORM = {
   firstName:'', lastName:'', alias:'', email:'', phone:'', birthDate:'', streetAddress:'', city:'', regionCode:'', regionName:'', postalCode:'', countryCode:'CA',
   payoutContactPreference:'', emergencyContactName:'', emergencyContactPhone:'', legalGuardianName:'', legalGuardianPhone:'', games:[], newGame:'',
-  wantsToOrganize:false, interestedInVolunteering:false, isPublic:false,
+  wantsToOrganize:false, interestedInVolunteering:false, isPublic:false, socials:{},
 }
 
-export default function EditProfile() {
+const SOCIAL_FIELDS = [
+  ['website', 'Site Web'], ['instagram', 'Instagram'], ['facebook', 'Facebook'], ['tiktok', 'TikTok'],
+  ['youtube', 'YouTube'], ['twitch', 'Twitch'], ['discord', 'Discord'], ['x', 'X'], ['linkedin', 'LinkedIn'],
+]
+
+export default function EditProfile({ initialData, onSaved, onCancel } = {}) {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -103,6 +108,7 @@ export default function EditProfile() {
       emergencyContactPhone: profile?.emergencyContactPhone || '', legalGuardianName: profile?.legalGuardianName || '', legalGuardianPhone: profile?.legalGuardianPhone || '',
       games: Array.from(new Set(savedGames)).slice(0,50), newGame:'', wantsToOrganize:Boolean(profile?.wantsToOrganize),
       interestedInVolunteering:Boolean(profile?.interestedInVolunteering), isPublic: profile ? Boolean(profile.isPublic) : false,
+      socials: Array.isArray(profile?.socials) ? Object.fromEntries(profile.socials.filter((link) => link && typeof link.platform === 'string' && typeof link.url === 'string').map((link) => [link.platform, link.url])) : {},
     })
     setLoading(false)
   }
@@ -112,14 +118,17 @@ export default function EditProfile() {
     let timeout
     const clearTimers = () => { timers.forEach(window.clearTimeout); if (timeout) window.clearTimeout(timeout) }
     const handleMessage = (event) => {
+      if (initialData && event.source !== window.parent) return
       if (!isTrustedWixParentMessage(event, window.parent)) return
       const message = event.data
       if (message.type === MESSAGE_TYPES.data) { clearTimers(); applyData(message.payload); setError('') }
-      if (message.type === MESSAGE_TYPES.saved) { setSaving(false); setSaved(true); setProfileExists(true); setForm((f) => ({...f,newGame:''})) }
+      if (message.type === MESSAGE_TYPES.saved) { setSaving(false); setSaved(true); setProfileExists(true); setForm((f) => ({...f,newGame:''})); onSaved?.() }
       if (message.type === MESSAGE_TYPES.error) { clearTimers(); setSaving(false); setLoading(false); setError(typeof message.message === 'string' ? message.message.slice(0,300) : 'Une erreur est survenue.') }
     }
     window.addEventListener('message', handleMessage)
-    if (isEmbedded()) {
+    if (initialData) {
+      applyData(initialData)
+    } else if (isEmbedded()) {
       postToWix({type:MESSAGE_TYPES.ready})
       ;[1500,4000,8000].forEach((delay) => timers.push(window.setTimeout(() => postToWix({type:MESSAGE_TYPES.request}), delay)))
       timeout = window.setTimeout(() => { setLoading(false); setError('La connexion avec Wix ne répond pas.') }, 12000)
@@ -154,6 +163,7 @@ export default function EditProfile() {
   if (!member && error) return <main className="editor-shell editor-shell--loading"><ShieldCheck size={34}/><strong>Impossible de charger votre profil joueur.</strong><p className="editor-error">{error}</p></main>
 
   return <main className="editor-shell">
+    {onCancel && <button type="button" className="back-button" onClick={onCancel} disabled={saving}>← Retour à mon profil</button>}
     <section className="editor-heading"><div className="editor-heading__icon"><UserRound size={25}/></div><div>
       <span className="section-kicker"><Sparkles size={15}/> Espace joueur</span>
       <h1>{profileExists ? 'Modifier mon profil joueur' : 'Compléter mon profil joueur'}</h1>
@@ -226,6 +236,13 @@ export default function EditProfile() {
             <Toggle checked={form.isPublic} onChange={(v)=>update('isPublic',v)} title="Afficher mon profil dans l’annuaire public" description="Important si vous voulez être trouvé·e par d’autres joueurs. Seuls l’alias, la ville, les jeux et les futurs champs explicitement publics peuvent apparaître."/>
           </div>
         </section>
+
+        <section className="editor-card">
+          <div className="editor-section-title"><div className="editor-step">7</div><div><h2>Liens et réseaux sociaux</h2><p>Facultatifs. Seuls les liens que vous ajoutez sont affichés dans votre profil public.</p></div></div>
+          <div className="editor-field-grid">
+            {SOCIAL_FIELDS.map(([platform, label]) => <label className="editor-field" key={platform}><span>{label} <em>public</em></span><input type="url" inputMode="url" placeholder="https://…" value={form.socials?.[platform] || ''} onChange={(e)=>update('socials',{...form.socials,[platform]:e.target.value})}/></label>)}
+          </div>
+        </section>
       </div>
 
       <aside className="editor-aside">
@@ -238,3 +255,4 @@ export default function EditProfile() {
     <p className="editor-footer-note"><Users size={15}/> Jouer pour de bon · Playing for Good</p>
   </main>
 }
+
