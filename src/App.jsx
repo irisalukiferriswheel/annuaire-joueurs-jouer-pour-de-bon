@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import PublicPlayerProfile from './PublicPlayerProfile.jsx'
 import {
   ArrowLeft,
   BadgeCheck,
@@ -486,6 +487,6 @@ export default function App({ language = 'en', dataSource = 'demo', dataReason =
   }
 
   return selectedPlayer
-    ? <Profile player={selectedPlayer} onBack={backToDirectory} language={language} />
+    ? <PublicPlayerProfile playerId={selectedPlayer.id} onBack={backToDirectory} language={language} />
     : <Directory onOpen={openPlayer} language={language} dataSource={dataSource} dataReason={dataReason} />
 }
