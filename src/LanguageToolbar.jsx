@@ -1,0 +1,2 @@
+import {useSiteLanguage} from './siteLanguage.js';
+export default function LanguageToolbar(){const [language,choose]=useSiteLanguage();return <div role="group" aria-label={language==='fr'?'Langue':'Language'} style={{display:'flex',gap:8,padding:12}} data-jpdb-language-control>{['fr','en'].map(code=><button type="button" key={code} lang={code} aria-pressed={language===code} onClick={()=>choose(code)}>{code==='fr'?'Français':'English'}</button>)}</div>;}

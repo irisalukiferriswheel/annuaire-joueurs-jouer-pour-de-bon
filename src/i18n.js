@@ -1,3 +1,4 @@
+import {getLanguage,setLanguage as chooseSiteLanguage} from './siteLanguage.js';
 export const copy = {
   fr: {
     languageName: 'Français',
@@ -141,23 +142,9 @@ export const copy = {
   },
 }
 
-export function getInitialLanguage() {
-  const params = new URLSearchParams(window.location.search)
-  const requested = params.get('lang')
-  if (requested === 'fr' || requested === 'en') return requested
+export function getInitialLanguage() { return getLanguage(); }
 
-  const saved = window.localStorage.getItem('jpdb-player-directory-language')
-  if (saved === 'fr' || saved === 'en') return saved
-
-  return navigator.language?.toLowerCase().startsWith('fr') ? 'fr' : 'en'
-}
-
-export function setLanguage(language) {
-  window.localStorage.setItem('jpdb-player-directory-language', language)
-  const url = new URL(window.location.href)
-  url.searchParams.set('lang', language)
-  window.location.assign(url.toString())
-}
+export function setLanguage(language) { chooseSiteLanguage(language); }
 
 export function localeForLanguage(language) {
   return language === 'fr' ? 'fr-CA' : 'en-CA'

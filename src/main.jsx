@@ -1,3 +1,4 @@
+import LanguageToolbar from './LanguageToolbar.jsx';
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
@@ -69,7 +70,7 @@ function updateDataSourceBanner(source, reason, language) {
 
 function renderDirectory({ language, source, reason }) {
   createRoot(document.getElementById('root')).render(
-    <React.StrictMode>
+    <React.StrictMode><LanguageToolbar/>
       <App language={language} dataSource={source} dataReason={reason} />
     </React.StrictMode>,
   )
@@ -80,7 +81,7 @@ function renderProfileEditor() {
   document.documentElement.lang = 'fr'
   document.title = 'Mon profil joueur | Jouer pour de bon'
   createRoot(document.getElementById('root')).render(
-    <React.StrictMode>
+    <React.StrictMode><LanguageToolbar/>
       <EditProfile />
     </React.StrictMode>,
   )
@@ -91,7 +92,7 @@ function renderAdminPlayers() {
   document.documentElement.lang = 'fr'
   document.title = 'Registre privé des joueurs | Jouer pour de bon'
   createRoot(document.getElementById('root')).render(
-    <React.StrictMode>
+    <React.StrictMode><LanguageToolbar/>
       <AdminPlayers />
     </React.StrictMode>,
   )
@@ -100,7 +101,7 @@ function renderAdminPlayers() {
 async function bootstrap() {
   if (window.location.hash === '#/my-profile') {
     hideDataSourceBanner()
-    createRoot(document.getElementById('root')).render(<React.StrictMode><MyProfile /></React.StrictMode>)
+    createRoot(document.getElementById('root')).render(<React.StrictMode><LanguageToolbar/><MyProfile /></React.StrictMode>)
     return
   }
   clearLegacyProfileEditorRoute()

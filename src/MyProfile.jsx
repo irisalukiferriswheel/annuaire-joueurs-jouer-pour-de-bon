@@ -1,3 +1,5 @@
+import {localError} from './siteLanguage.js';
+import {useSiteLanguage} from './siteLanguage.js';
 import { useEffect, useState } from 'react'
 import { Gamepad2, HeartHandshake, LoaderCircle, MapPin, Pencil, ShieldCheck, Trophy, UserRound } from 'lucide-react'
 import EditProfile from './EditProfile.jsx'
@@ -6,7 +8,7 @@ import { PROFILE_EDITOR_MESSAGE_TYPES as TYPES } from './profileEditorBridge.js'
 import './myProfile.css'
 
 export default function MyProfile() {
-  const language = getInitialLanguage()
+  const [language] = useSiteLanguage()
   const fr = language === 'fr'
   const t = (french, english) => fr ? french : english
   const [data, setData] = useState(null)
@@ -54,12 +56,12 @@ export default function MyProfile() {
       setError(t('La connexion à votre compte ne répond pas. Réessayez.', 'Your account connection is not responding. Please try again.'))
     }, 12000))
     return () => { clearTimers(); window.removeEventListener('message', receive) }
-  }, [revision, language])
+  }, [revision])
 
   const refresh = () => { setEditing(false); setRevision(value => value + 1) }
   if (editing) return <EditProfile initialData={data} onCancel={() => setEditing(false)} onSaved={() => { setSaved(true); refresh() }} />
   if (loading) return <main className="editor-shell editor-shell--loading" aria-busy="true"><LoaderCircle className="editor-spinner" size={32}/><p>{t('Chargement de votre profil…', 'Loading your profile…')}</p></main>
-  if (error) return <main className="editor-shell editor-shell--loading"><ShieldCheck size={32}/><h1>{t('Mon profil joueur', 'My player profile')}</h1><p role="alert">{error}</p><button className="button button--primary" onClick={refresh}>{t('Réessayer', 'Try again')}</button></main>
+  if (error) return <main className="editor-shell editor-shell--loading"><ShieldCheck size={32}/><h1>{t('Mon profil joueur', 'My player profile')}</h1><p role="alert">{localError(error)}</p><button className="button button--primary" onClick={refresh}>{t('Réessayer', 'Try again')}</button></main>
 
   const profile = data?.profile
   const name = profile?.alias || data?.member?.nickname || data?.member?.firstName || t('Votre profil', 'Your profile')

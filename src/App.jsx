@@ -1,3 +1,4 @@
+import {useSiteLanguage} from './siteLanguage.js';
 import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowLeft,
@@ -464,7 +465,8 @@ function currentPlayerId() {
   return match?.[1] || null
 }
 
-export default function App({ language = 'en', dataSource = 'demo', dataReason = null }) {
+export default function App({ dataSource = 'demo', dataReason = null }) {
+  const [language]=useSiteLanguage();
   const [playerId, setPlayerId] = useState(currentPlayerId)
 
   useEffect(() => {
