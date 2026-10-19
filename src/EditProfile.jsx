@@ -143,7 +143,7 @@ export default function EditProfile({ initialData, onSaved, onCancel } = {}) {
       if (state.ended) return
       if (message.type === MESSAGE_TYPES.data && !state.dirty && !state.pending) { clearTimers(); applyData(message.payload); setError('') }
       if (message.type === MESSAGE_TYPES.saved && state.pending && message.requestId === state.pending) { state.pending=null; setSaving(false); setSaved(true); setProfileExists(true); setForm((f) => ({...f,newGame:''})); onSaved?.() }
-      if (message.type === MESSAGE_TYPES.error && (!message.requestId || message.requestId === state.pending)) { state.pending=null; clearTimers(); setSaving(false); setLoading(false); setError(typeof message.message === 'string' ? message.message.slice(0,300) : 'Une erreur est survenue.') }
+      if (message.type === MESSAGE_TYPES.error && (message.requestId ? message.requestId === state.pending : !state.pending)) { state.pending=null; clearTimers(); setSaving(false); setLoading(false); setError(typeof message.message === 'string' ? message.message.slice(0,300) : 'Une erreur est survenue.') }
     }
     window.addEventListener('message', handleMessage)
     if (initialData) {
