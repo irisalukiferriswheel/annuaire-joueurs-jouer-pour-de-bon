@@ -41,16 +41,18 @@ test('resolves a trusted parent origin from the embedding referrer', () => {
   )
 })
 
-test('accepts only structured JPDB bridge message types during diagnostics', () => {
+test('accepts structured messages only from the configured parent window', () => {
   const event = {
     origin: 'https://unexpected-wix-sandbox.example',
     source: {},
     data: { type: 'JPDB_PROFILE_EDITOR_DATA' },
   }
 
-  assert.equal(isTrustedWixParentMessage(event), true)
-  assert.equal(isTrustedWixParentMessage({ ...event, data: { type: 'UNRELATED_MESSAGE' } }), false)
-  assert.equal(isTrustedWixParentMessage({ ...event, data: null }), false)
+  assert.equal(isTrustedWixParentMessage(event, event.source), true)
+  assert.equal(isTrustedWixParentMessage(event, {}), false)
+  assert.equal(isTrustedWixParentMessage(event), false)
+  assert.equal(isTrustedWixParentMessage({ ...event, data: { type: 'UNRELATED_MESSAGE' } }, event.source), false)
+  assert.equal(isTrustedWixParentMessage({ ...event, data: null }, event.source), false)
 })
 
 test('sanitizes and bounds editor save payloads before Wix receives them', () => {

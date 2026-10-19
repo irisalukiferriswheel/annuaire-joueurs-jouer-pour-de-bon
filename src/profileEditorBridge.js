@@ -7,6 +7,7 @@ export const PROFILE_EDITOR_MESSAGE_TYPES = Object.freeze({
   ready: 'JPDB_PROFILE_EDITOR_READY', request: 'JPDB_PROFILE_EDITOR_REQUEST_DATA',
   data: 'JPDB_PROFILE_EDITOR_DATA', save: 'JPDB_PROFILE_EDITOR_SAVE',
   saved: 'JPDB_PROFILE_EDITOR_SAVED', error: 'JPDB_PROFILE_EDITOR_ERROR',
+  sessionEnded: 'JPDB_PROFILE_SESSION_ENDED',
 })
 
 function cleanText(value, maxLength) {
@@ -70,7 +71,7 @@ export function sanitizeProfileEditorSavePayload(value) {
   }
 }
 
-export function isTrustedWixParentMessage(event) {
-  return Boolean(event && event.data && typeof event.data === 'object' && Object.values(PROFILE_EDITOR_MESSAGE_TYPES).includes(event.data.type))
+export function isTrustedWixParentMessage(event, expectedParent) {
+  return Boolean(expectedParent && event?.source === expectedParent && event.data && typeof event.data === 'object' && Object.values(PROFILE_EDITOR_MESSAGE_TYPES).includes(event.data.type))
 }
 

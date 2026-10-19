@@ -1,5 +1,5 @@
 import {translateEligibility,eligibilityError} from './eligibilityLanguage.js'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { BadgeCheck, Check, Gamepad2, HeartHandshake, LoaderCircle, MapPin, Save, ShieldCheck, Sparkles, UserRound, Users } from 'lucide-react'
 import {
   PROFILE_EDITOR_MESSAGE_TYPES as MESSAGE_TYPES,
@@ -83,6 +83,7 @@ export default function EditProfile({ initialData, onSaved, onCancel } = {}) {
     const url = new URL(window.location.href)
     url.searchParams.set('lang', language)
     window.history.replaceState(window.history.state, '', url)
+    postToWix({type:'JPDB_PROFILE_LANGUAGE_CHANGED',language})
   }, [language])
   const languageControl = <label className="editor-language">{language === 'en' ? 'Language' : 'Langue'} <select value={language} onChange={e=>setLanguage(e.target.value)}><option value="fr">Français</option><option value="en">English</option></select></label>
   const [loading, setLoading] = useState(true)
@@ -93,6 +94,7 @@ export default function EditProfile({ initialData, onSaved, onCancel } = {}) {
   const [games, setGames] = useState([])
   const [profileExists, setProfileExists] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
+  const interaction = useRef({dirty:false,ended:false,pending:null})
   const age = ageFromBirthDate(form.birthDate)
   const isMinor = age !== null && age < 18
 
@@ -134,9 +136,14 @@ export default function EditProfile({ initialData, onSaved, onCancel } = {}) {
       if (initialData && event.source !== window.parent) return
       if (!isTrustedWixParentMessage(event, window.parent)) return
       const message = event.data
-      if (message.type === MESSAGE_TYPES.data) { clearTimers(); applyData(message.payload); setError('') }
-      if (message.type === MESSAGE_TYPES.saved) { setSaving(false); setSaved(true); setProfileExists(true); setForm((f) => ({...f,newGame:''})); onSaved?.() }
-      if (message.type === MESSAGE_TYPES.error) { clearTimers(); setSaving(false); setLoading(false); setError(typeof message.message === 'string' ? message.message.slice(0,300) : 'Une erreur est survenue.') }
+      const state = interaction.current
+      if (message.type === MESSAGE_TYPES.sessionEnded || (message.type === MESSAGE_TYPES.error && ['LOGIN_REQUIRED','SESSION_CHANGED','SESSION_UNCONFIRMED','SESSION_EXPIRED'].includes(message.code))) {
+        state.ended=true; state.pending=null; clearTimers(); setForm(EMPTY_FORM); setMember(null); setGames([]); setSaved(false); setSaving(false); setLoading(false); setError('Votre session a pris fin. Reconnectez-vous.'); return
+      }
+      if (state.ended) return
+      if (message.type === MESSAGE_TYPES.data && !state.dirty && !state.pending) { clearTimers(); applyData(message.payload); setError('') }
+      if (message.type === MESSAGE_TYPES.saved && state.pending && message.requestId === state.pending) { state.pending=null; setSaving(false); setSaved(true); setProfileExists(true); setForm((f) => ({...f,newGame:''})); onSaved?.() }
+      if (message.type === MESSAGE_TYPES.error && (!message.requestId || message.requestId === state.pending)) { state.pending=null; clearTimers(); setSaving(false); setLoading(false); setError(typeof message.message === 'string' ? message.message.slice(0,300) : 'Une erreur est survenue.') }
     }
     window.addEventListener('message', handleMessage)
     if (initialData) {
@@ -152,11 +159,11 @@ export default function EditProfile({ initialData, onSaved, onCancel } = {}) {
     return () => { window.removeEventListener('message', handleMessage); clearTimers() }
   }, [])
 
-  const update = (key, value) => { setSaved(false); setError(''); setForm((f) => ({...f,[key]:value})) }
+  const update = (key, value) => { interaction.current.dirty=true; setSaved(false); setError(''); setForm((f) => ({...f,[key]:value})) }
 
   const submit = (event) => {
     event.preventDefault()
-    if (saving) return
+    if (saving || interaction.current.pending || interaction.current.ended) return
     const payload = sanitizeProfileEditorSavePayload(form)
     const required = [
       ['firstName','Entrez votre prénom.'],['lastName','Entrez votre nom de famille.'],['alias','Entrez un nom public / alias.'],['email','Entrez votre courriel.'],
@@ -169,7 +176,10 @@ export default function EditProfile({ initialData, onSaved, onCancel } = {}) {
     if (isMinor && (!payload.legalGuardianName || !payload.legalGuardianPhone)) return setError('Les coordonnées du parent ou tuteur légal sont requises pour un joueur mineur.')
     if (payload.games.length === 0) return setError('Choisissez au moins un jeu.')
     setSaving(true); setSaved(false); setError('')
-    if (isEmbedded()) return void postToWix({type:MESSAGE_TYPES.save,payload})
+    if (isEmbedded()) {
+      const requestId=crypto.randomUUID(); interaction.current.pending=requestId
+      return void postToWix({type:MESSAGE_TYPES.save,payload,requestId,language})
+    }
     window.setTimeout(() => { setSaving(false); setSaved(true); setProfileExists(true) }, 450)
   }
 

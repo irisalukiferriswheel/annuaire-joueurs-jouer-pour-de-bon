@@ -1,4 +1,5 @@
 export const english = {
+  'Votre session a pris fin. Reconnectez-vous.':'Your session ended. Sign in again.',
   'Chargement de votre profil joueur…':'Loading your player profile…',
   'Impossible de charger votre profil joueur.':'Unable to load your player profile.',
   '← Retour à mon profil':'← Back to my profile',
