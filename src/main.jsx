@@ -77,8 +77,9 @@ function renderDirectory({ language, source, reason }) {
 
 function renderProfileEditor() {
   hideDataSourceBanner()
-  document.documentElement.lang = 'fr'
-  document.title = 'Mon profil joueur | Jouer pour de bon'
+  const language = new URLSearchParams(window.location.search).get('lang') === 'en' ? 'en' : 'fr'
+  document.documentElement.lang = language
+  document.title = language === 'en' ? 'Player profile | Playing for Good' : 'Mon profil joueur | Jouer pour de bon'
   createRoot(document.getElementById('root')).render(
     <React.StrictMode>
       <EditProfile />

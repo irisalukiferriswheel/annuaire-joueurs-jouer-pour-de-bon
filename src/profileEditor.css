@@ -52,6 +52,7 @@
 .editor-toggle input { position: absolute; opacity: 0; pointer-events: none; }
 .editor-toggle__control { width: 23px; height: 23px; display: grid; place-items: center; flex: 0 0 auto; border: 1px solid #bac9d5; border-radius: 7px; color: transparent; background: white; }
 .editor-toggle input:checked + .editor-toggle__control { border-color: var(--pfg-green-600); color: white; background: var(--pfg-green-600); }
+.editor-toggle input:focus-visible + .editor-toggle__control { outline: 3px solid #0072ce; outline-offset: 3px; }
 .editor-toggle strong,.editor-toggle small { display: block; }
 .editor-toggle strong { color: var(--pfg-blue-900); font-size: .88rem; }
 .editor-toggle small { margin-top: 3px; color: var(--pfg-muted); font-size: .74rem; line-height: 1.4; }
@@ -77,6 +78,10 @@
 .editor-success { color: var(--pfg-green-700); font-weight: 850; }
 .editor-save { min-width: 205px; justify-content: center; }
 .editor-save:disabled { opacity: .65; cursor: wait; }
+.editor-language { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-bottom: 18px; }
+.editor-language select { min-height: 44px; padding: 8px 12px; border: 1px solid var(--pfg-muted); border-radius: 8px; background: white; color: inherit; }
+.editor-language select:focus-visible, .editor-game:focus-visible { outline: 3px solid #0072ce; outline-offset: 3px; }
+.editor-legal-review { font-size: .85rem; line-height: 1.5; }
 .editor-footer-note { display: flex; justify-content: center; align-items: center; gap: 6px; margin: 18px 0 0; color: var(--pfg-muted); font-size: .72rem; }
 
 @media (max-width: 820px) { .editor-layout { grid-template-columns: 1fr; } .editor-aside { grid-row: 2; } .editor-preview { position: static; } .editor-submit-bar { grid-column: 1; } }
